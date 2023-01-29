@@ -1,0 +1,14 @@
+[package]
+name = "glurm"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+crossbeam = "0.8.2"
+crossterm = "0.25.0"
+lazy_static = "1.4.0"
+notify = "5.1.0"
+regex = "1.7.1"
+tui = "0.19.0"
