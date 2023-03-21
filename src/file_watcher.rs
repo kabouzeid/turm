@@ -6,7 +6,7 @@ use std::{
 };
 
 use crossbeam::{
-    channel::{unbounded, Receiver, Sender},
+    channel::{unbounded, Receiver, RecvError, SendError, Sender},
     select,
 };
 use notify::{event::ModifyKind, RecursiveMode, Watcher};
@@ -49,7 +49,7 @@ impl FileWatcher {
         }
     }
 
-    fn run(&mut self) {
+    fn run(&mut self) -> Result<(), RecvError> {
         let (watch_sender, watch_receiver) = unbounded();
         let mut watcher = notify::recommended_watcher(move |res: notify::Result<notify::Event>| {
             let event = res.unwrap();
@@ -67,7 +67,7 @@ impl FileWatcher {
         loop {
             select! {
                 recv(self.receiver) -> msg => {
-                    match msg.unwrap() {
+                    match msg? {
                         FileWatcherMessage::FilePath(file_path) => {
                             (_content_sender, _content_receiver) = unbounded();
                             (_watch_sender, _watch_receiver) = unbounded::<()>();
@@ -129,7 +129,7 @@ impl FileReader {
         }
     }
 
-    fn update(&self) -> Result<(), crossbeam::channel::SendError<Option<String>>> {
+    fn update(&self) -> Result<(), SendError<Option<String>>> {
         let s = self.file_path.as_ref().and_then(|file_path| {
             // TODO: partial read only
             fs::read_to_string(file_path).ok()
