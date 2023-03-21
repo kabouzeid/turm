@@ -55,14 +55,14 @@ impl FileWatcher {
         })
         .unwrap();
 
-        let (mut content_sender, mut content_receiver) = unbounded::<Option<String>>();
+        let (mut _content_sender, mut _content_receiver) = unbounded::<Option<String>>();
         let (mut _watch_sender, mut _watch_receiver) = unbounded::<()>();
         loop {
             select! {
                 recv(self.receiver) -> msg => {
                     match msg.unwrap() {
                         FileWatcherMessage::FilePath(file_path) => {
-                            (content_sender, content_receiver) = unbounded();
+                            (_content_sender, _content_receiver) = unbounded();
                             (_watch_sender, _watch_receiver) = unbounded::<()>();
 
                             if let Some(p) = &self.file_path {
@@ -76,7 +76,7 @@ impl FileWatcher {
                                     Ok(_) => {
                                         self.file_path = Some(p);
                                         let p = self.file_path.clone();
-                                        thread::spawn(move || FileReader::new(content_sender, _watch_receiver, p).run());
+                                        thread::spawn(move || FileReader::new(_content_sender, _watch_receiver, p).run());
                                     },
                                     Err(e) => self.app.send(AppMessage::JobStdout(Some(format!("Failed to watch {:?}: {}", p, e)))).unwrap()
                                 };
@@ -85,7 +85,7 @@ impl FileWatcher {
                     }
                 }
                 recv(watch_receiver) -> _ => { _watch_sender.send(()).unwrap(); }
-                recv(content_receiver) -> msg => {
+                recv(_content_receiver) -> msg => {
                     self.app.send(AppMessage::JobStdout(msg.unwrap())).unwrap();
                 }
             }

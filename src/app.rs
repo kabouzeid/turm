@@ -1,5 +1,5 @@
 use crossbeam::{
-    channel::{unbounded, Receiver, Sender},
+    channel::{unbounded, Receiver},
     select,
 };
 use std::path::PathBuf;
@@ -29,9 +29,9 @@ pub struct App {
     job_list_state: ListState,
     job_stdout: Option<String>,
     job_stdout_offset: u16,
-    job_watcher: JobWatcherHandle,
+    _job_watcher: JobWatcherHandle,
     job_stdout_watcher: FileWatcherHandle,
-    sender: Sender<AppMessage>,
+    // sender: Sender<AppMessage>,
     receiver: Receiver<AppMessage>,
     input_receiver: Receiver<crossterm::Result<Event>>,
 }
@@ -61,12 +61,12 @@ impl App {
         Self {
             focus: Focus::Jobs,
             jobs: Vec::new(),
-            job_watcher: JobWatcherHandle::new(sender.clone(), Duration::from_secs(2)),
+            _job_watcher: JobWatcherHandle::new(sender.clone(), Duration::from_secs(2)),
             job_list_state: ListState::default(),
             job_stdout: None,
             job_stdout_offset: 0,
             job_stdout_watcher: FileWatcherHandle::new(sender.clone()),
-            sender: sender,
+            // sender,
             receiver: receiver,
             input_receiver: input_receiver,
         }
