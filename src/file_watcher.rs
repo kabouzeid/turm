@@ -17,12 +17,14 @@ struct FileReader {
     content_sender: Sender<Option<String>>,
     receiver: Receiver<()>,
     file_path: Option<PathBuf>,
+    interval: Duration,
 }
 
 struct FileWatcher {
     app: Sender<AppMessage>,
     receiver: Receiver<FileWatcherMessage>,
     file_path: Option<PathBuf>,
+    interval: Duration,
 }
 pub enum FileWatcherMessage {
     FilePath(Option<PathBuf>),
@@ -34,11 +36,16 @@ pub struct FileWatcherHandle {
 }
 
 impl FileWatcher {
-    fn new(app: Sender<AppMessage>, receiver: Receiver<FileWatcherMessage>) -> Self {
+    fn new(
+        app: Sender<AppMessage>,
+        receiver: Receiver<FileWatcherMessage>,
+        interval: Duration,
+    ) -> Self {
         FileWatcher {
             app: app,
             receiver: receiver,
             file_path: None,
+            interval: interval,
         }
     }
 
@@ -76,7 +83,8 @@ impl FileWatcher {
                                     Ok(_) => {
                                         self.file_path = Some(p);
                                         let p = self.file_path.clone();
-                                        thread::spawn(move || FileReader::new(_content_sender, _watch_receiver, p).run());
+                                        let i = self.interval.clone();
+                                        thread::spawn(move || FileReader::new(_content_sender, _watch_receiver, p, i).run());
                                     },
                                     Err(e) => self.app.send(AppMessage::JobStdout(Some(format!("Failed to watch {:?}: {}", p, e)))).unwrap()
                                 };
@@ -98,11 +106,13 @@ impl FileReader {
         content_sender: Sender<Option<String>>,
         receiver: Receiver<()>,
         file_path: Option<PathBuf>,
+        interval: Duration,
     ) -> Self {
         FileReader {
             content_sender: content_sender,
             receiver: receiver,
             file_path: file_path,
+            interval: interval,
         }
     }
 
@@ -114,7 +124,7 @@ impl FileReader {
                     msg.map_err(|_| ())?;
                 }
                 // in case the file watcher doesn't work (e.g. network mounted fs)
-                default(Duration::from_secs(10)) => {}
+                default(self.interval) => {}
             }
         }
     }
@@ -129,9 +139,9 @@ impl FileReader {
 }
 
 impl FileWatcherHandle {
-    pub fn new(app: Sender<AppMessage>) -> Self {
+    pub fn new(app: Sender<AppMessage>, interval: Duration) -> Self {
         let (sender, receiver) = unbounded();
-        let mut actor = FileWatcher::new(app, receiver);
+        let mut actor = FileWatcher::new(app, receiver, interval);
         thread::spawn(move || actor.run());
 
         Self {

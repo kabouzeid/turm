@@ -65,7 +65,7 @@ impl App {
             job_list_state: ListState::default(),
             job_stdout: None,
             job_stdout_offset: 0,
-            job_stdout_watcher: FileWatcherHandle::new(sender.clone()),
+            job_stdout_watcher: FileWatcherHandle::new(sender.clone(), Duration::from_secs(10)),
             // sender,
             receiver: receiver,
             input_receiver: input_receiver,
