@@ -219,13 +219,14 @@ impl App {
 fn string_for_paragraph(s: &str, lines: usize, cols: usize, offset: usize) -> String {
     s.lines()
         .rev()
+        .flat_map(|l| l.split('\r').rev()) // bandaid for term escape codes
         .skip(offset)
         .take(lines)
         .map(|l| l.chars().take(cols).collect::<String>())
-        .collect::<Vec<String>>()
+        .collect::<Vec<_>>()
         .into_iter()
         .rev()
-        .collect::<Vec<String>>()
+        .collect::<Vec<_>>()
         .join("\n")
 }
 

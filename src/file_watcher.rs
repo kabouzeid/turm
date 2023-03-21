@@ -122,9 +122,7 @@ impl FileReader {
     fn update(&self) -> Result<(), crossbeam::channel::SendError<Option<String>>> {
         let s = self.file_path.as_ref().and_then(|file_path| {
             // TODO: partial read only
-            fs::read_to_string(file_path)
-                .ok()
-                .map(|s| s.replace("\r", "\n")) // .replace doesn't really belong here, but it can be slow because log files can be huge => so better to do it here (off the UI thread) for now
+            fs::read_to_string(file_path).ok()
         });
         self.content_sender.send(s)
     }
