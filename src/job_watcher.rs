@@ -1,3 +1,4 @@
+use std::env;
 use std::path::PathBuf;
 use std::{io::BufRead, process::Command, thread, time::Duration};
 
@@ -40,8 +41,11 @@ impl JobWatcher {
             .map(|s| s.to_owned() + ":" + output_separator)
             .join(",");
 
+        let cli_args = env::args().skip(1).collect::<Vec<_>>();
+
         loop {
             let jobs: Vec<Job> = Command::new("squeue")
+                .args(&cli_args)
                 .arg("-h")
                 .arg("-O")
                 .arg(&output_format)
