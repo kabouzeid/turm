@@ -153,10 +153,35 @@ impl App {
 
     fn ui<B: Backend>(&mut self, f: &mut Frame<B>) {
         // Layout
+
+        let content_help = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([Constraint::Min(0), Constraint::Length(1)].as_ref())
+            .split(f.size());
+
         let master_detail = Layout::default()
             .direction(Direction::Horizontal)
             .constraints([Constraint::Percentage(30), Constraint::Percentage(70)].as_ref())
-            .split(f.size());
+            .split(content_help[0]);
+
+        // Help
+
+        let help = Spans::from(vec![
+            // ⏴⏵⏶⏷
+            Span::styled("⏶/⏷", Style::default().fg(Color::Blue)),
+            Span::styled(": navigate", Style::default().fg(Color::LightBlue)),
+            Span::raw(" | "),
+            Span::styled("pgup/pgdown", Style::default().fg(Color::Blue)),
+            Span::styled(": scroll", Style::default().fg(Color::LightBlue)),
+            Span::raw(" | "),
+            Span::styled("ctrl", Style::default().fg(Color::Blue)),
+            Span::styled(": fast scroll", Style::default().fg(Color::LightBlue)),
+            Span::raw(" | "),
+            Span::styled("q", Style::default().fg(Color::Blue)),
+            Span::styled(": quit", Style::default().fg(Color::LightBlue)),
+        ]);
+        let help = Paragraph::new(help);
+        f.render_widget(help, content_help[1]);
 
         // Jobs
         let max_user_len = self.jobs.iter().map(|j| j.user.len()).max().unwrap_or(0);
