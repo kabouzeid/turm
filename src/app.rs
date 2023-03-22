@@ -115,10 +115,28 @@ impl App {
                         Focus::Jobs => self.select_next_job(),
                     },
                     KeyCode::PageDown => {
-                        self.job_stdout_offset = self.job_stdout_offset.saturating_sub(1)
+                        self.job_stdout_offset = self.job_stdout_offset.saturating_sub(
+                            if key
+                                .modifiers
+                                .contains(crossterm::event::KeyModifiers::CONTROL)
+                            {
+                                10
+                            } else {
+                                1
+                            },
+                        )
                     }
                     KeyCode::PageUp => {
-                        self.job_stdout_offset = self.job_stdout_offset.saturating_add(1)
+                        self.job_stdout_offset = self.job_stdout_offset.saturating_add(
+                            if key
+                                .modifiers
+                                .contains(crossterm::event::KeyModifiers::CONTROL)
+                            {
+                                10
+                            } else {
+                                1
+                            },
+                        )
                     }
                     _ => {}
                 };
