@@ -189,17 +189,15 @@ impl App {
 
         // Log
         let log_area = master_detail[1];
-        let log_titles = Spans::from(vec![
-            Span::styled("stdout", Style::default().fg(Color::Green)),
+        let log_title = Spans::from(vec![
+            Span::raw("stdout"),
             Span::raw(if self.job_stdout_offset > 0 {
                 format!("[{}]", self.job_stdout_offset)
             } else {
                 "".to_string()
             }),
-            Span::raw("-"),
-            Span::styled("stderr", Style::default()),
         ]);
-        let log_block = Block::default().title(log_titles).borders(Borders::ALL);
+        let log_block = Block::default().title(log_title).borders(Borders::ALL);
 
         let job_log = self.job_stdout.as_deref().map(|s| {
             string_for_paragraph(
