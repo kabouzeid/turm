@@ -15,7 +15,7 @@ use tui::{
     layout::{Constraint, Direction, Layout},
     style::{Color, Style},
     text::{Span, Spans, Text},
-    widgets::{Block, Borders, List, ListItem, ListState, Paragraph},
+    widgets::{Block, Borders, List, ListItem, ListState, Paragraph, Wrap},
     Frame, Terminal,
 };
 
@@ -227,7 +227,7 @@ impl App {
         let job_list = List::new(jobs)
             .block(
                 Block::default()
-                    .title("Jobs")
+                    .title("Job Queue")
                     .borders(Borders::ALL)
                     .border_style(match self.focus {
                         Focus::Jobs => Style::default().fg(Color::Green),
@@ -304,17 +304,18 @@ impl App {
         //     "".to_string()
         // });
 
-        let job_log = match self.job_stdout.as_deref() {
-            Ok(s) => Text::raw(string_for_paragraph(
+        let log = match self.job_stdout.as_deref() {
+            Ok(s) => Paragraph::new(string_for_paragraph(
                 s,
                 log_block.inner(log_area).height as usize,
                 log_block.inner(log_area).width as usize,
                 self.job_stdout_offset as usize,
             )),
-            Err(e) => Text::styled(e.to_string(), Style::default().fg(Color::Red)),
-        };
-
-        let log = Paragraph::new(job_log).block(log_block);
+            Err(e) => Paragraph::new(e.to_string())
+                .style(Style::default().fg(Color::Red))
+                .wrap(Wrap { trim: true }),
+        }
+        .block(log_block);
 
         f.render_widget(log, log_area);
     }
