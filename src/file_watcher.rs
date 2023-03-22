@@ -1,5 +1,5 @@
 use std::{
-    fs,
+    fmt, fs, io,
     path::{Path, PathBuf},
     thread,
     time::Duration,
@@ -14,9 +14,9 @@ use notify::{event::ModifyKind, RecursiveMode, Watcher};
 use crate::app::AppMessage;
 
 struct FileReader {
-    content_sender: Sender<Option<String>>,
+    content_sender: Sender<io::Result<String>>,
     receiver: Receiver<()>,
-    file_path: Option<PathBuf>,
+    file_path: PathBuf,
     interval: Duration,
 }
 
@@ -33,6 +33,20 @@ pub enum FileWatcherMessage {
 pub struct FileWatcherHandle {
     sender: Sender<FileWatcherMessage>,
     file_path: Option<PathBuf>,
+}
+
+pub enum FileWatcherError {
+    Watcher(notify::Error),
+    File(io::Error),
+}
+
+impl fmt::Display for FileWatcherError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            FileWatcherError::Watcher(e) => write!(f, "Watcher error: {}", e),
+            FileWatcherError::File(e) => write!(f, "Read error: {}", e),
+        }
+    }
 }
 
 impl FileWatcher {
@@ -62,7 +76,7 @@ impl FileWatcher {
         })
         .unwrap();
 
-        let (mut _content_sender, mut _content_receiver) = unbounded::<Option<String>>();
+        let (mut _content_sender, mut _content_receiver) = unbounded::<io::Result<String>>();
         let (mut _watch_sender, mut _watch_receiver) = unbounded::<()>();
         loop {
             select! {
@@ -81,12 +95,11 @@ impl FileWatcher {
                                 let res = watcher.watch(Path::new(&p), RecursiveMode::NonRecursive);
                                 match res {
                                     Ok(_) => {
-                                        self.file_path = Some(p);
-                                        let p = self.file_path.clone();
+                                        self.file_path = Some(p.clone());
                                         let i = self.interval.clone();
                                         thread::spawn(move || FileReader::new(_content_sender, _watch_receiver, p, i).run());
                                     },
-                                    Err(e) => self.app.send(AppMessage::JobStdout(Some(format!("Failed to watch {:?}: {}", p, e)))).unwrap()
+                                    Err(e) => self.app.send(AppMessage::JobStdout(Err(FileWatcherError::Watcher(e)))).unwrap()
                                 };
                             }
                         }
@@ -94,7 +107,7 @@ impl FileWatcher {
                 }
                 recv(watch_receiver) -> _ => { _watch_sender.send(()).unwrap(); }
                 recv(_content_receiver) -> msg => {
-                    self.app.send(AppMessage::JobStdout(msg.unwrap())).unwrap();
+                    self.app.send(AppMessage::JobStdout(msg.unwrap().map_err(|e| FileWatcherError::File(e)))).unwrap();
                 }
             }
         }
@@ -103,9 +116,9 @@ impl FileWatcher {
 
 impl FileReader {
     fn new(
-        content_sender: Sender<Option<String>>,
+        content_sender: Sender<io::Result<String>>,
         receiver: Receiver<()>,
-        file_path: Option<PathBuf>,
+        file_path: PathBuf,
         interval: Duration,
     ) -> Self {
         FileReader {
@@ -129,11 +142,8 @@ impl FileReader {
         }
     }
 
-    fn update(&self) -> Result<(), SendError<Option<String>>> {
-        let s = self.file_path.as_ref().and_then(|file_path| {
-            // TODO: partial read only
-            fs::read_to_string(file_path).ok()
-        });
+    fn update(&self) -> Result<(), SendError<io::Result<String>>> {
+        let s = fs::read_to_string(&self.file_path); // TODO: partial read only
         self.content_sender.send(s)
     }
 }

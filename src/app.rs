@@ -5,7 +5,7 @@ use crossbeam::{
 use std::path::PathBuf;
 use std::time::Duration;
 
-use crate::file_watcher::FileWatcherHandle;
+use crate::file_watcher::{FileWatcherError, FileWatcherHandle};
 use crate::job_watcher::JobWatcherHandle;
 
 use crossterm::event::{Event, KeyCode, KeyEvent};
@@ -27,7 +27,7 @@ pub struct App {
     focus: Focus,
     jobs: Vec<Job>,
     job_list_state: ListState,
-    job_stdout: Option<String>,
+    job_stdout: Result<String, FileWatcherError>,
     job_stdout_offset: u16,
     _job_watcher: JobWatcherHandle,
     job_stdout_watcher: FileWatcherHandle,
@@ -52,7 +52,7 @@ pub struct Job {
 
 pub enum AppMessage {
     Jobs(Vec<Job>),
-    JobStdout(Option<String>),
+    JobStdout(Result<String, FileWatcherError>),
     Key(KeyEvent),
 }
 
@@ -64,7 +64,7 @@ impl App {
             jobs: Vec::new(),
             _job_watcher: JobWatcherHandle::new(sender.clone(), Duration::from_secs(2)),
             job_list_state: ListState::default(),
-            job_stdout: None,
+            job_stdout: Ok("".to_string()),
             job_stdout_offset: 0,
             job_stdout_watcher: FileWatcherHandle::new(sender.clone(), Duration::from_secs(10)),
             // sender,
@@ -292,16 +292,29 @@ impl App {
         ]);
         let log_block = Block::default().title(log_title).borders(Borders::ALL);
 
-        let job_log = self.job_stdout.as_deref().map(|s| {
-            string_for_paragraph(
+        // let job_log = self.job_stdout.as_deref().map(|s| {
+        //     string_for_paragraph(
+        //         s,
+        //         log_block.inner(log_area).height as usize,
+        //         log_block.inner(log_area).width as usize,
+        //         self.job_stdout_offset as usize,
+        //     )
+        // }).unwrap_or_else(|e| {
+        //     self.job_stdout_offset = 0;
+        //     "".to_string()
+        // });
+
+        let job_log = match self.job_stdout.as_deref() {
+            Ok(s) => Text::raw(string_for_paragraph(
                 s,
                 log_block.inner(log_area).height as usize,
                 log_block.inner(log_area).width as usize,
                 self.job_stdout_offset as usize,
-            )
-        });
+            )),
+            Err(e) => Text::styled(e.to_string(), Style::default().fg(Color::Red)),
+        };
 
-        let log = Paragraph::new(job_log.unwrap_or_default()).block(log_block);
+        let log = Paragraph::new(job_log).block(log_block);
 
         f.render_widget(log, log_area);
     }

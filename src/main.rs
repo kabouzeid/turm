@@ -2,10 +2,8 @@ mod app;
 mod file_watcher;
 mod job_watcher;
 
-use app::{App};
-use crossbeam::{
-    channel::{unbounded, Sender},
-};
+use app::App;
+use crossbeam::channel::{unbounded, Sender};
 use crossterm::{
     event::{self, DisableMouseCapture, EnableMouseCapture, Event},
     execute,
@@ -13,7 +11,8 @@ use crossterm::{
 };
 use std::{io, thread};
 use tui::{
-    backend::{Backend, CrosstermBackend}, Terminal,
+    backend::{Backend, CrosstermBackend},
+    Terminal,
 };
 
 fn main() -> Result<(), io::Error> {
