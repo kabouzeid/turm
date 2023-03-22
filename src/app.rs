@@ -14,7 +14,7 @@ use tui::{
     backend::Backend,
     layout::{Constraint, Direction, Layout},
     style::{Color, Style},
-    text::{Span, Spans},
+    text::{Span, Spans, Text},
     widgets::{Block, Borders, List, ListItem, ListState, Paragraph},
     Frame, Terminal,
 };
@@ -46,6 +46,7 @@ pub struct Job {
     pub partition: String,
     pub nodelist: String,
     pub stdout: Option<PathBuf>,
+    pub command: String,
     // pub stderr: Option<PathBuf>,
 }
 
@@ -156,13 +157,18 @@ impl App {
 
         let content_help = Layout::default()
             .direction(Direction::Vertical)
-            .constraints([Constraint::Min(0), Constraint::Length(1)].as_ref())
+            .constraints([Constraint::Min(3), Constraint::Length(1)].as_ref())
             .split(f.size());
 
         let master_detail = Layout::default()
             .direction(Direction::Horizontal)
             .constraints([Constraint::Percentage(30), Constraint::Percentage(70)].as_ref())
             .split(content_help[0]);
+
+        let job_detail_log = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([Constraint::Length(6), Constraint::Min(3)].as_ref())
+            .split(master_detail[1]);
 
         // Help
 
@@ -230,8 +236,52 @@ impl App {
             .highlight_style(Style::default().bg(Color::Green).fg(Color::Black));
         f.render_stateful_widget(job_list, master_detail[0], &mut self.job_list_state);
 
+        // Job details
+
+        let job_detail = self
+            .job_list_state
+            .selected()
+            .and_then(|i| self.jobs.get(i));
+
+        let job_detail = job_detail.map(|j| {
+            let command = Spans::from(vec![
+                Span::styled("Command", Style::default().fg(Color::Yellow)),
+                Span::raw(" "),
+                Span::raw(&j.command),
+                Span::raw(" "),
+            ]);
+            let nodes = Spans::from(vec![
+                Span::styled("Nodes  ", Style::default().fg(Color::Yellow)),
+                Span::raw(" "),
+                Span::raw(&j.nodelist),
+                Span::raw(" "),
+            ]);
+            let tres = Spans::from(vec![
+                Span::styled("TRES   ", Style::default().fg(Color::Yellow)),
+                Span::raw(" "),
+                Span::raw(&j.tres),
+                Span::raw(" "),
+            ]);
+            let stdout = Spans::from(vec![
+                Span::styled("stdout ", Style::default().fg(Color::Yellow)),
+                Span::raw(" "),
+                Span::raw(
+                    j.stdout
+                        .as_ref()
+                        .map(|p| p.to_str().unwrap_or_default())
+                        .unwrap_or_default(),
+                ),
+                Span::raw(" "),
+            ]);
+
+            Text::from(vec![command, nodes, tres, stdout])
+        });
+        let job_detail = Paragraph::new(job_detail.unwrap_or_default())
+            .block(Block::default().title("Details").borders(Borders::ALL));
+        f.render_widget(job_detail, job_detail_log[0]);
+
         // Log
-        let log_area = master_detail[1];
+        let log_area = job_detail_log[1];
         let log_title = Spans::from(vec![
             Span::raw("stdout"),
             Span::raw(if self.job_stdout_offset > 0 {

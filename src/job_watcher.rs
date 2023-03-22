@@ -32,6 +32,7 @@ impl JobWatcher {
             "partition",
             "nodelist",
             "stdout",
+            "command",
             "ArrayJobID",  // %A
             "ArrayTaskID", // %a
             "NodeList",    // %N
@@ -70,11 +71,12 @@ impl JobWatcher {
                     let partition = parts[6];
                     let nodelist = parts[7];
                     let stdout = parts[8];
+                    let command = parts[9];
 
-                    let array_job_id = parts[9];
-                    let array_task_id = parts[10];
-                    let node_list = parts[11];
-                    let working_dir = parts[12];
+                    let array_job_id = parts[10];
+                    let array_task_id = parts[11];
+                    let node_list = parts[12];
+                    let working_dir = parts[13];
 
                     Some(Job {
                         id: id.to_owned(),
@@ -85,6 +87,7 @@ impl JobWatcher {
                         tres: tres.to_owned(),
                         partition: partition.to_owned(),
                         nodelist: nodelist.to_owned(),
+                        command: command.to_owned(),
                         stdout: Self::resolve_path(
                             stdout,
                             array_job_id,
