@@ -1,6 +1,10 @@
 [package]
 name = "glurm"
 version = "0.1.0"
+authors = ["Karim Abou Zeid <contact@ka.codes>"]
+description = "A TUI for SLURM"
+repository = "https://github.com/kabouzeid/glurm"
+license = "MIT"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
