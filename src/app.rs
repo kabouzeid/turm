@@ -13,7 +13,7 @@ use std::io;
 use tui::{
     backend::Backend,
     layout::{Constraint, Direction, Layout},
-    style::{Color, Style},
+    style::{Color, Modifier, Style},
     text::{Span, Spans, Text},
     widgets::{Block, Borders, List, ListItem, ListState, Paragraph, Wrap},
     Frame, Terminal,
@@ -40,6 +40,8 @@ pub struct Job {
     pub id: String,
     pub name: String,
     pub state: String,
+    pub state_compact: String,
+    pub reason: Option<String>,
     pub user: String,
     pub time: String,
     pub tres: String,
@@ -167,7 +169,7 @@ impl App {
 
         let job_detail_log = Layout::default()
             .direction(Direction::Vertical)
-            .constraints([Constraint::Length(6), Constraint::Min(3)].as_ref())
+            .constraints([Constraint::Length(7), Constraint::Min(3)].as_ref())
             .split(master_detail[1]);
 
         // Help
@@ -244,23 +246,34 @@ impl App {
             .and_then(|i| self.jobs.get(i));
 
         let job_detail = job_detail.map(|j| {
+            let state = Spans::from(vec![
+                Span::styled("State  ", Style::default().fg(Color::Yellow)),
+                Span::raw(" "),
+                Span::raw(&j.state),
+                if let Some(s) = j.reason.as_deref() {
+                    Span::styled(
+                        format!(" ({s})"),
+                        Style::default().add_modifier(Modifier::DIM),
+                    )
+                } else {
+                    Span::raw("")
+                },
+            ]);
+
             let command = Spans::from(vec![
                 Span::styled("Command", Style::default().fg(Color::Yellow)),
                 Span::raw(" "),
                 Span::raw(&j.command),
-                Span::raw(" "),
             ]);
             let nodes = Spans::from(vec![
                 Span::styled("Nodes  ", Style::default().fg(Color::Yellow)),
                 Span::raw(" "),
                 Span::raw(&j.nodelist),
-                Span::raw(" "),
             ]);
             let tres = Spans::from(vec![
                 Span::styled("TRES   ", Style::default().fg(Color::Yellow)),
                 Span::raw(" "),
                 Span::raw(&j.tres),
-                Span::raw(" "),
             ]);
             let stdout = Spans::from(vec![
                 Span::styled("stdout ", Style::default().fg(Color::Yellow)),
@@ -271,10 +284,9 @@ impl App {
                         .map(|p| p.to_str().unwrap_or_default())
                         .unwrap_or_default(),
                 ),
-                Span::raw(" "),
             ]);
 
-            Text::from(vec![command, nodes, tres, stdout])
+            Text::from(vec![state, command, nodes, tres, stdout])
         });
         let job_detail = Paragraph::new(job_detail.unwrap_or_default())
             .block(Block::default().title("Details").borders(Borders::ALL));

@@ -33,6 +33,8 @@ impl JobWatcher {
             "nodelist",
             "stdout",
             "command",
+            "statecompact",
+            "reason",
             "ArrayJobID",  // %A
             "ArrayTaskID", // %a
             "NodeList",    // %N
@@ -72,16 +74,24 @@ impl JobWatcher {
                     let nodelist = parts[7];
                     let stdout = parts[8];
                     let command = parts[9];
+                    let state_compact = parts[10];
+                    let reason = parts[11];
 
-                    let array_job_id = parts[10];
-                    let array_task_id = parts[11];
-                    let node_list = parts[12];
-                    let working_dir = parts[13];
+                    let array_job_id = parts[12];
+                    let array_task_id = parts[13];
+                    let node_list = parts[14];
+                    let working_dir = parts[15];
 
                     Some(Job {
                         id: id.to_owned(),
                         name: name.to_owned(),
                         state: state.to_owned(),
+                        state_compact: state_compact.to_owned(),
+                        reason: if reason == "None" {
+                            None
+                        } else {
+                            Some(reason.to_owned())
+                        },
                         user: user.to_owned(),
                         time: time.to_owned(),
                         tres: tres.to_owned(),
