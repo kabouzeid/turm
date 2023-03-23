@@ -200,11 +200,22 @@ impl App {
             .max()
             .unwrap_or(0);
         let max_time_len = self.jobs.iter().map(|j| j.time.len()).max().unwrap_or(0);
+        let max_state_compact_len = self
+            .jobs
+            .iter()
+            .map(|j| j.state_compact.len())
+            .max()
+            .unwrap_or(0);
         let jobs: Vec<ListItem> = self
             .jobs
             .iter()
             .map(|j| {
                 ListItem::new(Spans::from(vec![
+                    Span::styled(
+                        format!("{:<max$.max$}", j.state_compact, max = max_state_compact_len),
+                        Style::default(),
+                    ),
+                    Span::raw(" "),
                     Span::styled(&j.id, Style::default().fg(Color::Yellow)),
                     Span::raw(" "),
                     Span::styled(
