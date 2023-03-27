@@ -141,6 +141,10 @@ impl App {
                             },
                         )
                     }
+                    KeyCode::End => self.job_stdout_offset = 0,
+                    // KeyCode::Home => {
+                    //     // somehow scroll to top?
+                    // }
                     _ => {}
                 };
             }
@@ -179,7 +183,7 @@ impl App {
             Span::styled("⏶/⏷", Style::default().fg(Color::Blue)),
             Span::styled(": navigate", Style::default().fg(Color::LightBlue)),
             Span::raw(" | "),
-            Span::styled("pgup/pgdown", Style::default().fg(Color::Blue)),
+            Span::styled("pgup/pgdown/end", Style::default().fg(Color::Blue)),
             Span::styled(": scroll", Style::default().fg(Color::LightBlue)),
             Span::raw(" | "),
             Span::styled("ctrl", Style::default().fg(Color::Blue)),
@@ -350,8 +354,8 @@ impl App {
 
 fn string_for_paragraph(s: &str, lines: usize, cols: usize, offset: usize) -> String {
     s.lines()
+        .flat_map(|l| l.split('\r')) // bandaid for term escape codes
         .rev()
-        .flat_map(|l| l.split('\r').rev()) // bandaid for term escape codes
         .skip(offset)
         .take(lines)
         .map(|l| l.chars().take(cols).collect::<String>())
