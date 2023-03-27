@@ -1,5 +1,7 @@
 use std::{
-    fmt, fs, io,
+    fmt,
+    fs::File,
+    io::{self, Read, Seek},
     path::{Path, PathBuf},
     thread,
     time::Duration,
@@ -18,6 +20,8 @@ struct FileReader {
     receiver: Receiver<()>,
     file_path: PathBuf,
     interval: Duration,
+    content: String,
+    pos: u64,
 }
 
 struct FileWatcher {
@@ -126,10 +130,12 @@ impl FileReader {
             receiver: receiver,
             file_path: file_path,
             interval: interval,
+            content: "".to_string(),
+            pos: 0,
         }
     }
 
-    fn run(&self) -> Result<(), ()> {
+    fn run(&mut self) -> Result<(), ()> {
         loop {
             self.update().map_err(|_| ())?;
             select! {
@@ -142,8 +148,14 @@ impl FileReader {
         }
     }
 
-    fn update(&self) -> Result<(), SendError<io::Result<String>>> {
-        let s = fs::read_to_string(&self.file_path); // TODO: partial read only
+    fn update(&mut self) -> Result<(), SendError<io::Result<String>>> {
+        let s = File::open(&self.file_path).and_then(|mut f| {
+            // avoid reading the whole file every time
+            self.pos = f.seek(io::SeekFrom::Start(self.pos))?;
+            self.pos += f.read_to_string(&mut self.content)? as u64;
+            Ok(self.content.clone())
+        });
+        // let s = fs::read_to_string(&self.file_path); // alternative: always read the whole file
         self.content_sender.send(s)
     }
 }

@@ -68,7 +68,7 @@ impl App {
             job_list_state: ListState::default(),
             job_stdout: Ok("".to_string()),
             job_stdout_offset: 0,
-            job_stdout_watcher: FileWatcherHandle::new(sender.clone(), Duration::from_secs(10)),
+            job_stdout_watcher: FileWatcherHandle::new(sender.clone(), Duration::from_secs(2)),
             // sender,
             receiver: receiver,
             input_receiver: input_receiver,
@@ -212,7 +212,11 @@ impl App {
             .map(|j| {
                 ListItem::new(Spans::from(vec![
                     Span::styled(
-                        format!("{:<max$.max$}", j.state_compact, max = max_state_compact_len),
+                        format!(
+                            "{:<max$.max$}",
+                            j.state_compact,
+                            max = max_state_compact_len
+                        ),
                         Style::default(),
                     ),
                     Span::raw(" "),
