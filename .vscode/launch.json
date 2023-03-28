@@ -7,15 +7,15 @@
         {
             "type": "lldb",
             "request": "launch",
-            "name": "Debug executable 'glurm'",
+            "name": "Debug executable 'turm'",
             "cargo": {
                 "args": [
                     "build",
-                    "--bin=glurm",
-                    "--package=glurm"
+                    "--bin=turm",
+                    "--package=turm"
                 ],
                 "filter": {
-                    "name": "glurm",
+                    "name": "turm",
                     "kind": "bin"
                 }
             },
@@ -28,16 +28,16 @@
         {
             "type": "lldb",
             "request": "launch",
-            "name": "Debug unit tests in executable 'glurm'",
+            "name": "Debug unit tests in executable 'turm'",
             "cargo": {
                 "args": [
                     "test",
                     "--no-run",
-                    "--bin=glurm",
-                    "--package=glurm"
+                    "--bin=turm",
+                    "--package=turm"
                 ],
                 "filter": {
-                    "name": "glurm",
+                    "name": "turm",
                     "kind": "bin"
                 }
             },
