@@ -168,7 +168,7 @@ impl App {
 
         let master_detail = Layout::default()
             .direction(Direction::Horizontal)
-            .constraints([Constraint::Percentage(30), Constraint::Percentage(70)].as_ref())
+            .constraints([Constraint::Min(50), Constraint::Percentage(70)].as_ref())
             .split(content_help[0]);
 
         let job_detail_log = Layout::default()
