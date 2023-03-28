@@ -2,12 +2,32 @@
 
 A text-based user interface (TUI) for the [Slurm Workload Manager](https://slurm.schedmd.com/), which provides a convenient way to manage your cluster jobs.
 
-## Usage
+<img alt="turm demo" src="https://user-images.githubusercontent.com/7303830/228503846-3e5abc04-2c1e-422e-844b-d12ca097403a.gif" width="100%" />
 
-`turm` accepts the same CLI flags as `squeue`, and passes them to `squeue` when querying the jobs.
+`turm` accepts the same CLI flags as `squeue` (see [man squeue](https://slurm.schedmd.com/squeue.html#SECTION_OPTIONS)), and passes them on when querying the jobs.
 ```bash
 turm [--user <username>] [--partition <partition>] [...]
 ```
+
+## Installation
+
+### From source
+
+```bash
+git clone https://github.com/kabouzeid/turm
+cd turm
+cargo install --path .
+```
+
+### From binaries
+
+*Soon*
+
+## Project status
+
+This project is currently a work in progress but the basic functionality is there.
+There are still some missing features that need to be implemented and a few visual bugs present at the moment. 
+Please feel free to submit any issues or feedback you may have.
 
 ## How it works
 
@@ -18,7 +38,7 @@ Another advantage is that we get free support for the exact same CLI flags as `s
 
 ## Ressource usage
 
-TL;DR: `turm` $\approx$ `watch -n2 squeue` + `tail -f slurm-log.out`
+TL;DR: `turm` ≈ `watch -n2 squeue` + `tail -f slurm-log.out`
 
 Special care has been taken to ensure that `turm` is as lightweight as possible in terms of its impact on the Slurm controller and its file I/O operations.
 The job queue is updated every two seconds by running `squeue`.
