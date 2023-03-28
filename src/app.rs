@@ -353,6 +353,7 @@ impl App {
 }
 
 fn string_for_paragraph(s: &str, lines: usize, cols: usize, offset: usize) -> String {
+    let s = s.rsplit_once(&['\r', '\n']).map_or(s, |(p, _)| p); // skip everything after last line delimiter
     s.lines()
         .flat_map(|l| l.split('\r')) // bandaid for term escape codes
         .rev()
