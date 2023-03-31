@@ -21,7 +21,8 @@ cargo install --path .
 
 ### From binaries
 
-*Soon*
+The [release page](https://github.com/kabouzeid/turm/releases) includes precompiled binaries for Linux, macOS and Windows.
+Statically-linked binaries are also available: look for archives with `musl` in the file name.
 
 ## Project status
 
