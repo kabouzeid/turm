@@ -105,6 +105,8 @@ impl FileWatcher {
                                     },
                                     Err(e) => self.app.send(AppMessage::JobStdout(Err(FileWatcherError::Watcher(e)))).unwrap()
                                 };
+                            } else {
+                                _content_sender.send(Ok("".to_string())).unwrap();
                             }
                         }
                     }
