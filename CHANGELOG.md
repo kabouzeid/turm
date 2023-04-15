@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.2.0](https://github.com/kabouzeid/turm/compare/v0.1.0...v0.2.0) (2023-04-15)
+
+
+### Features
+
+* cancel jobs ([bc05723](https://github.com/kabouzeid/turm/commit/bc057230244ce215a585dbb318de762913524a5b))
+* select first job on launch ([7c742fd](https://github.com/kabouzeid/turm/commit/7c742fdd3b66787b10df6a017de6c7522c8f9858))
+
+
+### Bug Fixes
+
+* clear the log on empty selection ([518afdb](https://github.com/kabouzeid/turm/commit/518afdbf67ada9ea1d7b2597765630cba8a00ee4))
+* correctly display job ids in arrays ([bc05723](https://github.com/kabouzeid/turm/commit/bc057230244ce215a585dbb318de762913524a5b))
+
 ## 0.1.0 (2023-03-31)
 
 
