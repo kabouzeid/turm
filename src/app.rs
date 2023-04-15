@@ -2,8 +2,8 @@ use crossbeam::{
     channel::{unbounded, Receiver},
     select,
 };
-use std::path::PathBuf;
-use std::time::Duration;
+use std::{cmp::min, path::PathBuf, process::Command};
+use std::{process::Stdio, time::Duration};
 
 use crate::file_watcher::{FileWatcherError, FileWatcherHandle};
 use crate::job_watcher::JobWatcherHandle;
@@ -12,10 +12,10 @@ use crossterm::event::{Event, KeyCode, KeyEvent};
 use std::io;
 use tui::{
     backend::Backend,
-    layout::{Constraint, Direction, Layout},
+    layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
     text::{Span, Spans, Text},
-    widgets::{Block, Borders, List, ListItem, ListState, Paragraph, Wrap},
+    widgets::{Block, Borders, Clear, List, ListItem, ListState, Paragraph, Wrap},
     Frame, Terminal,
 };
 
@@ -23,8 +23,13 @@ pub enum Focus {
     Jobs,
 }
 
+pub enum Dialog {
+    ConfirmCancelJob(String),
+}
+
 pub struct App {
     focus: Focus,
+    dialog: Option<Dialog>,
     jobs: Vec<Job>,
     job_list_state: ListState,
     job_stdout: Result<String, FileWatcherError>,
@@ -37,7 +42,9 @@ pub struct App {
 }
 
 pub struct Job {
-    pub id: String,
+    pub job_id: String,
+    pub array_id: String,
+    pub array_step: Option<String>,
     pub name: String,
     pub state: String,
     pub state_compact: String,
@@ -52,6 +59,15 @@ pub struct Job {
     // pub stderr: Option<PathBuf>,
 }
 
+impl Job {
+    fn id(&self) -> String {
+        match self.array_step.as_ref() {
+            Some(array_step) => format!("{}_{}", self.array_id, array_step),
+            None => self.job_id.clone(),
+        }
+    }
+}
+
 pub enum AppMessage {
     Jobs(Vec<Job>),
     JobStdout(Result<String, FileWatcherError>),
@@ -63,6 +79,7 @@ impl App {
         let (sender, receiver) = unbounded();
         Self {
             focus: Focus::Jobs,
+            dialog: None,
             jobs: Vec::new(),
             _job_watcher: JobWatcherHandle::new(sender.clone(), Duration::from_secs(2)),
             job_list_state: {
@@ -112,45 +129,74 @@ impl App {
             AppMessage::Jobs(jobs) => self.jobs = jobs,
             AppMessage::JobStdout(content) => self.job_stdout = content,
             AppMessage::Key(key) => {
-                match key.code {
-                    KeyCode::Char('h') | KeyCode::Left => self.focus_previous_panel(),
-                    KeyCode::Char('l') | KeyCode::Right => self.focus_next_panel(),
-                    KeyCode::Char('k') | KeyCode::Up => match self.focus {
-                        Focus::Jobs => self.select_previous_job(),
-                    },
-                    KeyCode::Char('j') | KeyCode::Down => match self.focus {
-                        Focus::Jobs => self.select_next_job(),
-                    },
-                    KeyCode::PageDown => {
-                        self.job_stdout_offset = self.job_stdout_offset.saturating_sub(
-                            if key
-                                .modifiers
-                                .contains(crossterm::event::KeyModifiers::CONTROL)
+                if let Some(dialog) = &self.dialog {
+                    match dialog {
+                        Dialog::ConfirmCancelJob(id) => match key.code {
+                            KeyCode::Enter | KeyCode::Char('y') => {
+                                Command::new("scancel")
+                                    .arg(id)
+                                    .stdout(Stdio::null())
+                                    .stderr(Stdio::null())
+                                    .spawn()
+                                    .expect("failed to execute scancel");
+                                self.dialog = None;
+                            }
+                            KeyCode::Esc => {
+                                self.dialog = None;
+                            }
+                            _ => {}
+                        },
+                    };
+                } else {
+                    match key.code {
+                        KeyCode::Char('h') | KeyCode::Left => self.focus_previous_panel(),
+                        KeyCode::Char('l') | KeyCode::Right => self.focus_next_panel(),
+                        KeyCode::Char('k') | KeyCode::Up => match self.focus {
+                            Focus::Jobs => self.select_previous_job(),
+                        },
+                        KeyCode::Char('j') | KeyCode::Down => match self.focus {
+                            Focus::Jobs => self.select_next_job(),
+                        },
+                        KeyCode::PageDown => {
+                            self.job_stdout_offset = self.job_stdout_offset.saturating_sub(
+                                if key
+                                    .modifiers
+                                    .contains(crossterm::event::KeyModifiers::CONTROL)
+                                {
+                                    10
+                                } else {
+                                    1
+                                },
+                            )
+                        }
+                        KeyCode::PageUp => {
+                            self.job_stdout_offset = self.job_stdout_offset.saturating_add(
+                                if key
+                                    .modifiers
+                                    .contains(crossterm::event::KeyModifiers::CONTROL)
+                                {
+                                    10
+                                } else {
+                                    1
+                                },
+                            )
+                        }
+                        KeyCode::End => self.job_stdout_offset = 0,
+                        // KeyCode::Home => {
+                        //     // somehow scroll to top?
+                        // }
+                        KeyCode::Char('c') => {
+                            if let Some(id) = self
+                                .job_list_state
+                                .selected()
+                                .and_then(|i| self.jobs.get(i).map(|j| j.id()))
                             {
-                                10
-                            } else {
-                                1
-                            },
-                        )
-                    }
-                    KeyCode::PageUp => {
-                        self.job_stdout_offset = self.job_stdout_offset.saturating_add(
-                            if key
-                                .modifiers
-                                .contains(crossterm::event::KeyModifiers::CONTROL)
-                            {
-                                10
-                            } else {
-                                1
-                            },
-                        )
-                    }
-                    KeyCode::End => self.job_stdout_offset = 0,
-                    // KeyCode::Home => {
-                    //     // somehow scroll to top?
-                    // }
-                    _ => {}
-                };
+                                self.dialog = Some(Dialog::ConfirmCancelJob(id));
+                            }
+                        }
+                        _ => {}
+                    };
+                }
             }
         }
 
@@ -190,16 +236,20 @@ impl App {
             Span::styled("pgup/pgdown/end", Style::default().fg(Color::Blue)),
             Span::styled(": scroll", Style::default().fg(Color::LightBlue)),
             Span::raw(" | "),
-            Span::styled("ctrl", Style::default().fg(Color::Blue)),
-            Span::styled(": fast scroll", Style::default().fg(Color::LightBlue)),
+            Span::styled("esc", Style::default().fg(Color::Blue)),
+            Span::styled(": cancel", Style::default().fg(Color::LightBlue)),
             Span::raw(" | "),
             Span::styled("q", Style::default().fg(Color::Blue)),
             Span::styled(": quit", Style::default().fg(Color::LightBlue)),
+            Span::raw(" | "),
+            Span::styled("c", Style::default().fg(Color::Blue)),
+            Span::styled(": cancel job", Style::default().fg(Color::LightBlue)),
         ]);
         let help = Paragraph::new(help);
         f.render_widget(help, content_help[1]);
 
         // Jobs
+        let max_id_len = self.jobs.iter().map(|j| j.id().len()).max().unwrap_or(0);
         let max_user_len = self.jobs.iter().map(|j| j.user.len()).max().unwrap_or(0);
         let max_partition_len = self
             .jobs
@@ -228,7 +278,10 @@ impl App {
                         Style::default(),
                     ),
                     Span::raw(" "),
-                    Span::styled(&j.id, Style::default().fg(Color::Yellow)),
+                    Span::styled(
+                        format!("{:<max$.max$}", j.id(), max = max_id_len),
+                        Style::default().fg(Color::Yellow),
+                    ),
                     Span::raw(" "),
                     Span::styled(
                         format!("{:<max$.max$}", j.partition, max = max_partition_len),
@@ -254,8 +307,12 @@ impl App {
                 Block::default()
                     .title("Job Queue")
                     .borders(Borders::ALL)
-                    .border_style(match self.focus {
-                        Focus::Jobs => Style::default().fg(Color::Green),
+                    .border_style(if self.dialog.is_some() {
+                        Style::default()
+                    } else {
+                        match self.focus {
+                            Focus::Jobs => Style::default().fg(Color::Green),
+                        }
                     }),
             )
             .highlight_style(Style::default().bg(Color::Green).fg(Color::Black));
@@ -353,6 +410,47 @@ impl App {
         .block(log_block);
 
         f.render_widget(log, log_area);
+
+        if let Some(dialog) = &self.dialog {
+            fn centered_lines(percent_x: u16, lines: u16, r: Rect) -> Rect {
+                let dy = r.height.saturating_sub(lines) / 2;
+                let r = Rect::new(r.x, r.y + dy, r.width, min(lines, r.height - dy));
+
+                Layout::default()
+                    .direction(Direction::Horizontal)
+                    .constraints(
+                        [
+                            Constraint::Percentage((100 - percent_x) / 2),
+                            Constraint::Percentage(percent_x),
+                            Constraint::Percentage((100 - percent_x) / 2),
+                        ]
+                        .as_ref(),
+                    )
+                    .split(r)[1]
+            }
+
+            match dialog {
+                Dialog::ConfirmCancelJob(id) => {
+                    let dialog = Paragraph::new(Spans::from(vec![
+                        Span::raw("Cancel job "),
+                        Span::styled(id, Style::default().add_modifier(Modifier::BOLD)),
+                        Span::raw("?"),
+                    ]))
+                    .style(Style::default().fg(Color::White))
+                    .wrap(Wrap { trim: true })
+                    .block(
+                        Block::default()
+                            .title("Confirm")
+                            .borders(Borders::ALL)
+                            .style(Style::default().fg(Color::Green)),
+                    );
+
+                    let area = centered_lines(75, 3, f.size());
+                    f.render_widget(Clear, area);
+                    f.render_widget(dialog, area);
+                }
+            }
+        }
     }
 }
 

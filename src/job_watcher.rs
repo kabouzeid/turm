@@ -49,8 +49,9 @@ impl JobWatcher {
         loop {
             let jobs: Vec<Job> = Command::new("squeue")
                 .args(&cli_args)
-                .arg("-h")
-                .arg("-O")
+                .arg("--array")
+                .arg("--noheader")
+                .arg("--Format")
                 .arg(&output_format)
                 .output()
                 .expect("failed to execute process")
@@ -83,7 +84,12 @@ impl JobWatcher {
                     let working_dir = parts[15];
 
                     Some(Job {
-                        id: id.to_owned(),
+                        job_id: id.to_owned(),
+                        array_id: array_job_id.to_owned(),
+                        array_step: match array_task_id {
+                            "N/A" => None,
+                            _ => Some(array_task_id.to_owned()),
+                        },
                         name: name.to_owned(),
                         state: state.to_owned(),
                         state_compact: state_compact.to_owned(),
