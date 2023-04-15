@@ -65,7 +65,11 @@ impl App {
             focus: Focus::Jobs,
             jobs: Vec::new(),
             _job_watcher: JobWatcherHandle::new(sender.clone(), Duration::from_secs(2)),
-            job_list_state: ListState::default(),
+            job_list_state: {
+                let mut s = ListState::default();
+                s.select(Some(0));
+                s
+            },
             job_stdout: Ok("".to_string()),
             job_stdout_offset: 0,
             job_stdout_watcher: FileWatcherHandle::new(sender.clone(), Duration::from_secs(2)),
