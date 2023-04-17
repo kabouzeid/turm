@@ -11,6 +11,7 @@ edition = "2021"
 
 [dependencies]
 clap = { version = "4.2.2", features = ["derive"] }
+clap_complete = "4.2.0"
 crossbeam = "0.8.2"
 crossterm = "0.25.0"
 lazy_static = "1.4.0"

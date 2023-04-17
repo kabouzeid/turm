@@ -4,10 +4,13 @@ A text-based user interface (TUI) for the [Slurm Workload Manager](https://slurm
 
 <img alt="turm demo" src="https://user-images.githubusercontent.com/7303830/228503846-3e5abc04-2c1e-422e-844b-d12ca097403a.gif" width="100%" />
 
-`turm` accepts the same CLI flags as `squeue` (see [man squeue](https://slurm.schedmd.com/squeue.html#SECTION_OPTIONS)), and passes them on when querying the jobs.
-```bash
-turm [--user <username>] [--partition <partition>] [...]
-```
+`turm` accepts the same options as `squeue` (see [man squeue](https://slurm.schedmd.com/squeue.html#SECTION_OPTIONS)). Use `turm --help` to get a list of all available options.
+
+## Project status
+
+This project is currently a work in progress but the basic functionality is there.
+There are still some missing features that need to be implemented and a few visual bugs present at the moment. 
+Please feel free to submit any issues or feedback you may have.
 
 ## Installation
 
@@ -24,11 +27,25 @@ cargo install --path .
 The [release page](https://github.com/kabouzeid/turm/releases) includes precompiled binaries for Linux, macOS and Windows.
 Statically-linked binaries are also available: look for archives with `musl` in the file name.
 
-## Project status
+## Shell Completion
 
-This project is currently a work in progress but the basic functionality is there.
-There are still some missing features that need to be implemented and a few visual bugs present at the moment. 
-Please feel free to submit any issues or feedback you may have.
+### Bash
+
+In your `.bashrc`, add the following line:
+```bash
+eval "$(turm completion bash)"
+```
+
+### Zsh
+
+In your `.zshrc`, add the following line:
+```zsh
+eval "$(turm completion zsh)"
+```
+
+### Other Shells
+
+Completion scripts for other shells (`fish`, `elvish` and `powershell`) can be generated with `turm completion <shell>`.
 
 ## How it works
 

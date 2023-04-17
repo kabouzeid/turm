@@ -4,7 +4,10 @@ mod job_watcher;
 mod squeue_args;
 
 use app::App;
+use clap::CommandFactory;
 use clap::Parser;
+use clap::Subcommand;
+use clap_complete::{generate, Shell};
 use crossbeam::channel::{unbounded, Sender};
 use crossterm::{
     event::{self, DisableMouseCapture, EnableMouseCapture, Event},
@@ -18,7 +21,7 @@ use tui::{
     Terminal,
 };
 
-#[derive(Parser, Debug)]
+#[derive(Parser)]
 #[command(author, version, about, long_about = None)]
 struct Cli {
     /// Refresh rate for the job watcher.
@@ -32,10 +35,30 @@ struct Cli {
     /// squeue arguments
     #[command(flatten)]
     squeue_args: SqueueArgs,
+
+    #[command(subcommand)]
+    command: Option<CliCommand>,
+}
+
+#[derive(Subcommand)]
+enum CliCommand {
+    /// Print shell completion script to stdout.
+    Completion {
+        /// The shell to generate completion for.
+        shell: Shell,
+    },
 }
 
 fn main() -> Result<(), io::Error> {
     let args = Cli::parse();
+    match args.command {
+        Some(CliCommand::Completion { shell }) => {
+            let cmd = &mut Cli::command();
+            generate(shell, cmd, cmd.get_name().to_string(), &mut io::stdout());
+            return Ok(());
+        }
+        None => {}
+    }
 
     // setup terminal
     enable_raw_mode()?;
