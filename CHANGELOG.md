@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.3.0](https://github.com/kabouzeid/turm/compare/v0.2.0...v0.3.0) (2023-04-17)
+
+
+### Features
+
+* add shell completions ([e9b8de0](https://github.com/kabouzeid/turm/commit/e9b8de0018b3dd91d72db6e3c164aa18a1fe17d9))
+* proper cli with help ([90988f6](https://github.com/kabouzeid/turm/commit/90988f65208b353204acd6a570be45e753bfcdfc))
+
 ## [0.2.0](https://github.com/kabouzeid/turm/compare/v0.1.0...v0.2.0) (2023-04-15)
 
 
