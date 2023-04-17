@@ -75,13 +75,22 @@ pub enum AppMessage {
 }
 
 impl App {
-    pub fn new(input_receiver: Receiver<crossterm::Result<Event>>) -> App {
+    pub fn new(
+        input_receiver: Receiver<crossterm::Result<Event>>,
+        slurm_refresh_rate: u64,
+        file_refresh_rate: u64,
+        squeue_args: Vec<String>,
+    ) -> App {
         let (sender, receiver) = unbounded();
         Self {
             focus: Focus::Jobs,
             dialog: None,
             jobs: Vec::new(),
-            _job_watcher: JobWatcherHandle::new(sender.clone(), Duration::from_secs(2)),
+            _job_watcher: JobWatcherHandle::new(
+                sender.clone(),
+                Duration::from_secs(slurm_refresh_rate),
+                squeue_args,
+            ),
             job_list_state: {
                 let mut s = ListState::default();
                 s.select(Some(0));
@@ -89,7 +98,10 @@ impl App {
             },
             job_stdout: Ok("".to_string()),
             job_stdout_offset: 0,
-            job_stdout_watcher: FileWatcherHandle::new(sender.clone(), Duration::from_secs(2)),
+            job_stdout_watcher: FileWatcherHandle::new(
+                sender.clone(),
+                Duration::from_secs(file_refresh_rate),
+            ),
             // sender,
             receiver: receiver,
             input_receiver: input_receiver,

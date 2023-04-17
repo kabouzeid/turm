@@ -1,4 +1,3 @@
-use std::env;
 use std::path::PathBuf;
 use std::{io::BufRead, process::Command, thread, time::Duration};
 
@@ -11,13 +10,18 @@ use crate::app::Job;
 struct JobWatcher {
     app: Sender<AppMessage>,
     interval: Duration,
+    squeue_args: Vec<String>,
 }
 
 pub struct JobWatcherHandle {}
 
 impl JobWatcher {
-    fn new(app: Sender<AppMessage>, interval: Duration) -> Self {
-        Self { app, interval }
+    fn new(app: Sender<AppMessage>, interval: Duration, squeue_args: Vec<String>) -> Self {
+        Self {
+            app,
+            interval,
+            squeue_args,
+        }
     }
 
     fn run(&mut self) -> Self {
@@ -44,11 +48,9 @@ impl JobWatcher {
             .map(|s| s.to_owned() + ":" + output_separator)
             .join(",");
 
-        let cli_args = env::args().skip(1).collect::<Vec<_>>();
-
         loop {
             let jobs: Vec<Job> = Command::new("squeue")
-                .args(&cli_args)
+                .args(&self.squeue_args)
                 .arg("--array")
                 .arg("--noheader")
                 .arg("--Format")
@@ -187,8 +189,8 @@ impl JobWatcher {
 }
 
 impl JobWatcherHandle {
-    pub fn new(app: Sender<AppMessage>, interval: Duration) -> Self {
-        let mut actor = JobWatcher::new(app, interval);
+    pub fn new(app: Sender<AppMessage>, interval: Duration, squeue_args: Vec<String>) -> Self {
+        let mut actor = JobWatcher::new(app, interval, squeue_args);
         thread::spawn(move || actor.run());
 
         Self {}
