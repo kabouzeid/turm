@@ -171,11 +171,12 @@ impl App {
                         },
                         KeyCode::PageDown => {
                             self.job_stdout_offset = self.job_stdout_offset.saturating_sub(
-                                if key
-                                    .modifiers
-                                    .contains(crossterm::event::KeyModifiers::CONTROL)
-                                {
-                                    10
+                                if key.modifiers.intersects(
+                                    crossterm::event::KeyModifiers::SHIFT
+                                        | crossterm::event::KeyModifiers::CONTROL
+                                        | crossterm::event::KeyModifiers::ALT,
+                                ) {
+                                    50
                                 } else {
                                     1
                                 },
@@ -183,11 +184,12 @@ impl App {
                         }
                         KeyCode::PageUp => {
                             self.job_stdout_offset = self.job_stdout_offset.saturating_add(
-                                if key
-                                    .modifiers
-                                    .contains(crossterm::event::KeyModifiers::CONTROL)
-                                {
-                                    10
+                                if key.modifiers.intersects(
+                                    crossterm::event::KeyModifiers::SHIFT
+                                        | crossterm::event::KeyModifiers::CONTROL
+                                        | crossterm::event::KeyModifiers::ALT,
+                                ) {
+                                    50
                                 } else {
                                     1
                                 },
