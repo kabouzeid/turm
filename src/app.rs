@@ -27,12 +27,19 @@ pub enum Dialog {
     ConfirmCancelJob(String),
 }
 
+#[derive(Clone, Copy)]
+pub enum ScrollAnchor {
+    Top,
+    Bottom,
+}
+
 pub struct App {
     focus: Focus,
     dialog: Option<Dialog>,
     jobs: Vec<Job>,
     job_list_state: ListState,
     job_stdout: Result<String, FileWatcherError>,
+    job_stdout_anchor: ScrollAnchor,
     job_stdout_offset: u16,
     _job_watcher: JobWatcherHandle,
     job_stdout_watcher: FileWatcherHandle,
@@ -97,6 +104,7 @@ impl App {
                 s
             },
             job_stdout: Ok("".to_string()),
+            job_stdout_anchor: ScrollAnchor::Bottom,
             job_stdout_offset: 0,
             job_stdout_watcher: FileWatcherHandle::new(
                 sender.clone(),
@@ -170,35 +178,55 @@ impl App {
                             Focus::Jobs => self.select_next_job(),
                         },
                         KeyCode::PageDown => {
-                            self.job_stdout_offset = self.job_stdout_offset.saturating_sub(
-                                if key.modifiers.intersects(
-                                    crossterm::event::KeyModifiers::SHIFT
-                                        | crossterm::event::KeyModifiers::CONTROL
-                                        | crossterm::event::KeyModifiers::ALT,
-                                ) {
-                                    50
-                                } else {
-                                    1
-                                },
-                            )
+                            let delta = if key.modifiers.intersects(
+                                crossterm::event::KeyModifiers::SHIFT
+                                    | crossterm::event::KeyModifiers::CONTROL
+                                    | crossterm::event::KeyModifiers::ALT,
+                            ) {
+                                50
+                            } else {
+                                1
+                            };
+                            match self.job_stdout_anchor {
+                                ScrollAnchor::Top => {
+                                    self.job_stdout_offset =
+                                        self.job_stdout_offset.saturating_add(delta)
+                                }
+                                ScrollAnchor::Bottom => {
+                                    self.job_stdout_offset =
+                                        self.job_stdout_offset.saturating_sub(delta)
+                                }
+                            }
                         }
                         KeyCode::PageUp => {
-                            self.job_stdout_offset = self.job_stdout_offset.saturating_add(
-                                if key.modifiers.intersects(
-                                    crossterm::event::KeyModifiers::SHIFT
-                                        | crossterm::event::KeyModifiers::CONTROL
-                                        | crossterm::event::KeyModifiers::ALT,
-                                ) {
-                                    50
-                                } else {
-                                    1
-                                },
-                            )
+                            let delta = if key.modifiers.intersects(
+                                crossterm::event::KeyModifiers::SHIFT
+                                    | crossterm::event::KeyModifiers::CONTROL
+                                    | crossterm::event::KeyModifiers::ALT,
+                            ) {
+                                50
+                            } else {
+                                1
+                            };
+                            match self.job_stdout_anchor {
+                                ScrollAnchor::Top => {
+                                    self.job_stdout_offset =
+                                        self.job_stdout_offset.saturating_sub(delta)
+                                }
+                                ScrollAnchor::Bottom => {
+                                    self.job_stdout_offset =
+                                        self.job_stdout_offset.saturating_add(delta)
+                                }
+                            }
                         }
-                        KeyCode::End => self.job_stdout_offset = 0,
-                        // KeyCode::Home => {
-                        //     // somehow scroll to top?
-                        // }
+                        KeyCode::Home => {
+                            self.job_stdout_offset = 0;
+                            self.job_stdout_anchor = ScrollAnchor::Top;
+                        }
+                        KeyCode::End => {
+                            self.job_stdout_offset = 0;
+                            self.job_stdout_anchor = ScrollAnchor::Bottom;
+                        }
                         KeyCode::Char('c') => {
                             if let Some(id) = self
                                 .job_list_state
@@ -244,17 +272,23 @@ impl App {
 
         let help = Spans::from(vec![
             // ⏴⏵⏶⏷
+            Span::styled("q", Style::default().fg(Color::Blue)),
+            Span::styled(": quit", Style::default().fg(Color::LightBlue)),
+            Span::raw(" | "),
             Span::styled("⏶/⏷", Style::default().fg(Color::Blue)),
             Span::styled(": navigate", Style::default().fg(Color::LightBlue)),
             Span::raw(" | "),
-            Span::styled("pgup/pgdown/end", Style::default().fg(Color::Blue)),
+            Span::styled("pgup/pgdown", Style::default().fg(Color::Blue)),
             Span::styled(": scroll", Style::default().fg(Color::LightBlue)),
+            Span::raw(" | "),
+            Span::styled("home/end", Style::default().fg(Color::Blue)),
+            Span::styled(": scroll top/bottom", Style::default().fg(Color::LightBlue)),
             Span::raw(" | "),
             Span::styled("esc", Style::default().fg(Color::Blue)),
             Span::styled(": cancel", Style::default().fg(Color::LightBlue)),
             Span::raw(" | "),
-            Span::styled("q", Style::default().fg(Color::Blue)),
-            Span::styled(": quit", Style::default().fg(Color::LightBlue)),
+            Span::styled("enter", Style::default().fg(Color::Blue)),
+            Span::styled(": confirm", Style::default().fg(Color::LightBlue)),
             Span::raw(" | "),
             Span::styled("c", Style::default().fg(Color::Blue)),
             Span::styled(": cancel job", Style::default().fg(Color::LightBlue)),
@@ -390,11 +424,15 @@ impl App {
         let log_area = job_detail_log[1];
         let log_title = Spans::from(vec![
             Span::raw("stdout"),
-            Span::raw(if self.job_stdout_offset > 0 {
-                format!("[{}]", self.job_stdout_offset)
-            } else {
-                "".to_string()
-            }),
+            Span::styled(
+                match self.job_stdout_anchor {
+                    ScrollAnchor::Top if self.job_stdout_offset == 0 => "[T]".to_string(),
+                    ScrollAnchor::Top => format!("[T+{}]", self.job_stdout_offset),
+                    ScrollAnchor::Bottom if self.job_stdout_offset == 0 => "".to_string(),
+                    ScrollAnchor::Bottom => format!("[B-{}]", self.job_stdout_offset),
+                },
+                Style::default().add_modifier(Modifier::DIM),
+            ),
         ]);
         let log_block = Block::default().title(log_title).borders(Borders::ALL);
 
@@ -415,6 +453,7 @@ impl App {
                 s,
                 log_block.inner(log_area).height as usize,
                 log_block.inner(log_area).width as usize,
+                self.job_stdout_anchor,
                 self.job_stdout_offset as usize,
             )),
             Err(e) => Paragraph::new(e.to_string())
@@ -468,19 +507,32 @@ impl App {
     }
 }
 
-fn string_for_paragraph(s: &str, lines: usize, cols: usize, offset: usize) -> String {
+fn string_for_paragraph(
+    s: &str,
+    lines: usize,
+    cols: usize,
+    anchor: ScrollAnchor,
+    offset: usize,
+) -> String {
     let s = s.rsplit_once(&['\r', '\n']).map_or(s, |(p, _)| p); // skip everything after last line delimiter
-    s.lines()
-        .flat_map(|l| l.split('\r')) // bandaid for term escape codes
-        .rev()
-        .skip(offset)
-        .take(lines)
-        .map(|l| l.chars().take(cols).collect::<String>())
-        .collect::<Vec<_>>()
-        .into_iter()
-        .rev()
-        .collect::<Vec<_>>()
-        .join("\n")
+    let l = s.lines().flat_map(|l| l.split('\r')); // bandaid for term escape codes
+    let l = match anchor {
+        ScrollAnchor::Top => l
+            .skip(offset)
+            .take(lines)
+            .map(|l| l.chars().take(cols).collect::<String>())
+            .collect::<Vec<_>>(),
+        ScrollAnchor::Bottom => l
+            .rev()
+            .skip(offset)
+            .take(lines)
+            .map(|l| l.chars().take(cols).collect::<String>())
+            .collect::<Vec<_>>()
+            .into_iter()
+            .rev()
+            .collect::<Vec<_>>(),
+    };
+    l.join("\n")
 }
 
 impl App {
