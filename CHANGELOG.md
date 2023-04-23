@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.4.0](https://github.com/kabouzeid/turm/compare/v0.3.0...v0.4.0) (2023-04-23)
+
+
+### Features
+
+* faster fast scrolling (shift/control/alt) ([37e205a](https://github.com/kabouzeid/turm/commit/37e205aaf819e99e13aea70327de84289cba0482))
+* scroll to top/bottom ([0022a70](https://github.com/kabouzeid/turm/commit/0022a70a58d6a0f2b1e159f0b5afef99ae6ea2c1))
+
 ## [0.3.0](https://github.com/kabouzeid/turm/compare/v0.2.0...v0.3.0) (2023-04-17)
 
 
