@@ -41,9 +41,16 @@ In your `.zshrc`, add the following line:
 eval "$(turm completion zsh)"
 ```
 
+### Fish
+
+In your `config.fish` or in a separate `completions/turm.fish` file, add the following line:
+```fish
+turm completion fish | source
+```
+
 ### Other Shells
 
-Completion scripts for other shells (`fish`, `elvish` and `powershell`) can be generated with `turm completion <shell>`.
+Completion scripts for other shells (`elvish` and `powershell`) can be generated with `turm completion <shell>`.
 
 ## How it works
 
