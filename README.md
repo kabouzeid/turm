@@ -17,9 +17,7 @@ Please feel free to submit any issues or feedback you may have.
 ### From source
 
 ```bash
-git clone https://github.com/kabouzeid/turm
-cd turm
-cargo install --path .
+cargo install turm
 ```
 
 ### From binaries
