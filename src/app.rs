@@ -282,7 +282,7 @@ impl App {
             Span::styled(": scroll", Style::default().fg(Color::LightBlue)),
             Span::raw(" | "),
             Span::styled("home/end", Style::default().fg(Color::Blue)),
-            Span::styled(": scroll top/bottom", Style::default().fg(Color::LightBlue)),
+            Span::styled(": top/bottom", Style::default().fg(Color::LightBlue)),
             Span::raw(" | "),
             Span::styled("esc", Style::default().fg(Color::Blue)),
             Span::styled(": cancel", Style::default().fg(Color::LightBlue)),
@@ -353,7 +353,7 @@ impl App {
         let job_list = List::new(jobs)
             .block(
                 Block::default()
-                    .title("Job Queue")
+                    .title(format!("Jobs ({})", self.jobs.len()))
                     .borders(Borders::ALL)
                     .border_style(if self.dialog.is_some() {
                         Style::default()
