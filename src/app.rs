@@ -46,8 +46,10 @@ pub struct App {
     // sender: Sender<AppMessage>,
     receiver: Receiver<AppMessage>,
     input_receiver: Receiver<crossterm::Result<Event>>,
+    natural_order: bool,
 }
 
+#[derive(Clone)]
 pub struct Job {
     pub job_id: String,
     pub array_id: String,
@@ -113,6 +115,7 @@ impl App {
             // sender,
             receiver: receiver,
             input_receiver: input_receiver,
+            natural_order: false,
         }
     }
 }
@@ -146,7 +149,13 @@ impl App {
 
     fn handle(&mut self, msg: AppMessage) {
         match msg {
-            AppMessage::Jobs(jobs) => self.jobs = jobs,
+            AppMessage::Jobs(jobs) => {
+                let mut jobs = jobs.clone();
+                if self.natural_order {
+                    jobs.sort_by(|a, b| natord::compare(&a.id(), &b.id()));
+                }
+                self.jobs = jobs;
+            }
             AppMessage::JobStdout(content) => self.job_stdout = content,
             AppMessage::Key(key) => {
                 if let Some(dialog) = &self.dialog {
@@ -236,6 +245,9 @@ impl App {
                                 self.dialog = Some(Dialog::ConfirmCancelJob(id));
                             }
                         }
+                        KeyCode::Char('s') => {
+                            self.natural_order = !self.natural_order;
+                        }
                         _ => {}
                     };
                 }
@@ -292,6 +304,9 @@ impl App {
             Span::raw(" | "),
             Span::styled("c", Style::default().fg(Color::Blue)),
             Span::styled(": cancel job", Style::default().fg(Color::LightBlue)),
+            Span::raw(" | "),
+            Span::styled("s", Style::default().fg(Color::Blue)),
+            Span::styled(": natsort", Style::default().fg(Color::LightBlue)),
         ]);
         let help = Paragraph::new(help);
         f.render_widget(help, content_help[1]);
