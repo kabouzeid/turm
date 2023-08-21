@@ -33,6 +33,11 @@ pub enum ScrollAnchor {
     Bottom,
 }
 
+pub enum FileView {
+    Stdout,
+    Stderr,
+}
+
 pub struct App {
     focus: Focus,
     dialog: Option<Dialog>,
@@ -47,6 +52,7 @@ pub struct App {
     receiver: Receiver<AppMessage>,
     input_receiver: Receiver<crossterm::Result<Event>>,
     natural_order: bool,
+    file_view: FileView,
 }
 
 #[derive(Clone)]
@@ -64,6 +70,7 @@ pub struct Job {
     pub partition: String,
     pub nodelist: String,
     pub stdout: Option<PathBuf>,
+    pub stderr: Option<PathBuf>,
     pub command: String,
     // pub stderr: Option<PathBuf>,
 }
@@ -116,6 +123,7 @@ impl App {
             receiver: receiver,
             input_receiver: input_receiver,
             natural_order: false,
+            file_view: FileView::Stderr,
         }
     }
 }
@@ -248,6 +256,12 @@ impl App {
                         KeyCode::Char('s') => {
                             self.natural_order = !self.natural_order;
                         }
+                        KeyCode::Char('o') => {
+                            self.file_view = match self.file_view {
+                                FileView::Stdout => FileView::Stderr,
+                                FileView::Stderr => FileView::Stdout,
+                            };
+                        }
                         _ => {}
                     };
                 }
@@ -258,7 +272,10 @@ impl App {
         self.job_stdout_watcher.set_file_path(
             self.job_list_state
                 .selected()
-                .and_then(|i| self.jobs.get(i).and_then(|j| j.stdout.clone())),
+                .and_then(|i| self.jobs.get(i).and_then(|j| match self.file_view {
+                    FileView::Stdout => j.stdout.clone(),
+                    FileView::Stderr => j.stderr.clone(),
+                })),
         );
     }
 
@@ -307,6 +324,9 @@ impl App {
             Span::raw(" | "),
             Span::styled("s", Style::default().fg(Color::Blue)),
             Span::styled(": natsort", Style::default().fg(Color::LightBlue)),
+            Span::raw(" | "),
+            Span::styled("o", Style::default().fg(Color::Blue)),
+            Span::styled(": toggle stdout/stderr", Style::default().fg(Color::LightBlue)),
         ]);
         let help = Paragraph::new(help);
         f.render_widget(help, content_help[1]);
@@ -418,12 +438,18 @@ impl App {
                 Span::raw(" "),
                 Span::raw(&j.tres),
             ]);
+            let ui_stdout_text = match self.file_view {
+                FileView::Stdout => "stdout ",
+                FileView::Stderr => "stderr ",
+            };
             let stdout = Spans::from(vec![
-                Span::styled("stdout ", Style::default().fg(Color::Yellow)),
+                Span::styled(ui_stdout_text, Style::default().fg(Color::Yellow)),
                 Span::raw(" "),
                 Span::raw(
-                    j.stdout
-                        .as_ref()
+                    match self.file_view {
+                        FileView::Stdout => &j.stdout,
+                        FileView::Stderr => &j.stderr,
+                    }.as_ref()
                         .map(|p| p.to_str().unwrap_or_default())
                         .unwrap_or_default(),
                 ),
@@ -438,7 +464,10 @@ impl App {
         // Log
         let log_area = job_detail_log[1];
         let log_title = Spans::from(vec![
-            Span::raw("stdout"),
+            Span::raw(match self.file_view {
+                FileView::Stdout => "stdout",
+                FileView::Stderr => "stderr",
+            }),
             Span::styled(
                 match self.job_stdout_anchor {
                     ScrollAnchor::Top if self.job_stdout_offset == 0 => "[T]".to_string(),
