@@ -13,9 +13,13 @@ edition = "2021"
 clap = { version = "4.2.2", features = ["derive"] }
 clap_complete = "4.2.0"
 crossbeam = "0.8.2"
-crossterm = "0.25.0"
+crossterm = "0.27.0"
 lazy_static = "1.4.0"
 natord = "1.0.9"
-notify = "5.1.0"
+notify = "6.1.1"
 regex = "1.7.1"
 tui = "0.19.0"
+
+
+[profile.dev.package."*"]
+opt-level = 3

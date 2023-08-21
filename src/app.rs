@@ -33,7 +33,9 @@ pub enum ScrollAnchor {
     Bottom,
 }
 
+#[derive(Default)]
 pub enum FileView {
+    #[default]
     Stdout,
     Stderr,
 }
@@ -50,7 +52,7 @@ pub struct App {
     job_stdout_watcher: FileWatcherHandle,
     // sender: Sender<AppMessage>,
     receiver: Receiver<AppMessage>,
-    input_receiver: Receiver<crossterm::Result<Event>>,
+    input_receiver: Receiver<std::io::Result<Event>>,
     natural_order: bool,
     file_view: FileView,
 }
@@ -72,7 +74,6 @@ pub struct Job {
     pub stdout: Option<PathBuf>,
     pub stderr: Option<PathBuf>,
     pub command: String,
-    // pub stderr: Option<PathBuf>,
 }
 
 impl Job {
@@ -92,7 +93,7 @@ pub enum AppMessage {
 
 impl App {
     pub fn new(
-        input_receiver: Receiver<crossterm::Result<Event>>,
+        input_receiver: Receiver<std::io::Result<Event>>,
         slurm_refresh_rate: u64,
         file_refresh_rate: u64,
         squeue_args: Vec<String>,
@@ -123,7 +124,7 @@ impl App {
             receiver: receiver,
             input_receiver: input_receiver,
             natural_order: false,
-            file_view: FileView::Stderr,
+            file_view: FileView::default(),
         }
     }
 }

@@ -80,7 +80,7 @@ fn main() -> Result<(), io::Error> {
     Ok(())
 }
 
-fn input_loop(tx: Sender<crossterm::Result<Event>>) {
+fn input_loop(tx: Sender<std::io::Result<Event>>) {
     loop {
         tx.send(event::read()).unwrap();
     }
