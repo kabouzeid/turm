@@ -484,6 +484,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "passwd"
+version = "0.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5499366e9469e62340d8c66d31b6c545483a28a41c97d82210703188bcd2f473"
+dependencies = [
+ "libc",
+]
+
+[[package]]
 name = "proc-macro2"
 version = "1.0.66"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -644,6 +653,7 @@ dependencies = [
  "lazy_static",
  "natord",
  "notify",
+ "passwd",
  "regex",
  "tui",
 ]

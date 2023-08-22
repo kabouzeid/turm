@@ -18,6 +18,7 @@ use tui::{
     widgets::{Block, Borders, Clear, List, ListItem, ListState, Paragraph, Wrap},
     Frame, Terminal,
 };
+use passwd::Passwd;
 
 pub enum Focus {
     Jobs,
@@ -295,7 +296,7 @@ impl App {
 
         let job_detail_log = Layout::default()
             .direction(Direction::Vertical)
-            .constraints([Constraint::Length(7), Constraint::Min(3)].as_ref())
+            .constraints([Constraint::Length(8), Constraint::Min(3)].as_ref())
             .split(master_detail[1]);
 
         // Help
@@ -455,8 +456,14 @@ impl App {
                         .unwrap_or_default(),
                 ),
             ]);
+            let user_name = Passwd::from_name(&j.user).unwrap().gecos;
+            let user_detail = Spans::from(vec![
+                Span::styled("User   ", Style::default().fg(Color::Yellow)),
+                Span::raw(" "),
+                Span::raw(user_name),
+            ]);
 
-            Text::from(vec![state, command, nodes, tres, stdout])
+            Text::from(vec![state, command, nodes, tres, stdout, user_detail])
         });
         let job_detail = Paragraph::new(job_detail.unwrap_or_default())
             .block(Block::default().title("Details").borders(Borders::ALL));
