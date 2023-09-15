@@ -16,7 +16,7 @@ use crossterm::{
 };
 use squeue_args::SqueueArgs;
 use std::{io, thread};
-use tui::{
+use ratatui::{
     backend::{Backend, CrosstermBackend},
     Terminal,
 };
