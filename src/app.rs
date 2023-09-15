@@ -45,7 +45,7 @@ pub struct App {
     job_stdout_watcher: FileWatcherHandle,
     // sender: Sender<AppMessage>,
     receiver: Receiver<AppMessage>,
-    input_receiver: Receiver<crossterm::Result<Event>>,
+    input_receiver: Receiver<std::io::Result<Event>>,
 }
 
 pub struct Job {
@@ -83,7 +83,7 @@ pub enum AppMessage {
 
 impl App {
     pub fn new(
-        input_receiver: Receiver<crossterm::Result<Event>>,
+        input_receiver: Receiver<std::io::Result<Event>>,
         slurm_refresh_rate: u64,
         file_refresh_rate: u64,
         squeue_args: Vec<String>,
