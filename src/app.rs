@@ -10,11 +10,11 @@ use crate::job_watcher::JobWatcherHandle;
 
 use crossterm::event::{Event, KeyCode, KeyEvent};
 use std::io;
-use tui::{
+use ratatui::{
     backend::Backend,
     layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
-    text::{Span, Spans, Text},
+    text::{Span, Line, Text},
     widgets::{Block, Borders, Clear, List, ListItem, ListState, Paragraph, Wrap},
     Frame, Terminal,
 };
@@ -270,7 +270,7 @@ impl App {
 
         // Help
 
-        let help = Spans::from(vec![
+        let help = Line::from(vec![
             // ⏴⏵⏶⏷
             Span::styled("q", Style::default().fg(Color::Blue)),
             Span::styled(": quit", Style::default().fg(Color::LightBlue)),
@@ -316,7 +316,7 @@ impl App {
             .jobs
             .iter()
             .map(|j| {
-                ListItem::new(Spans::from(vec![
+                ListItem::new(Line::from(vec![
                     Span::styled(
                         format!(
                             "{:<max$.max$}",
@@ -374,7 +374,7 @@ impl App {
             .and_then(|i| self.jobs.get(i));
 
         let job_detail = job_detail.map(|j| {
-            let state = Spans::from(vec![
+            let state = Line::from(vec![
                 Span::styled("State  ", Style::default().fg(Color::Yellow)),
                 Span::raw(" "),
                 Span::raw(&j.state),
@@ -388,22 +388,22 @@ impl App {
                 },
             ]);
 
-            let command = Spans::from(vec![
+            let command = Line::from(vec![
                 Span::styled("Command", Style::default().fg(Color::Yellow)),
                 Span::raw(" "),
                 Span::raw(&j.command),
             ]);
-            let nodes = Spans::from(vec![
+            let nodes = Line::from(vec![
                 Span::styled("Nodes  ", Style::default().fg(Color::Yellow)),
                 Span::raw(" "),
                 Span::raw(&j.nodelist),
             ]);
-            let tres = Spans::from(vec![
+            let tres = Line::from(vec![
                 Span::styled("TRES   ", Style::default().fg(Color::Yellow)),
                 Span::raw(" "),
                 Span::raw(&j.tres),
             ]);
-            let stdout = Spans::from(vec![
+            let stdout = Line::from(vec![
                 Span::styled("stdout ", Style::default().fg(Color::Yellow)),
                 Span::raw(" "),
                 Span::raw(
@@ -422,7 +422,7 @@ impl App {
 
         // Log
         let log_area = job_detail_log[1];
-        let log_title = Spans::from(vec![
+        let log_title = Line::from(vec![
             Span::raw("stdout"),
             Span::styled(
                 match self.job_stdout_anchor {
@@ -484,7 +484,7 @@ impl App {
 
             match dialog {
                 Dialog::ConfirmCancelJob(id) => {
-                    let dialog = Paragraph::new(Spans::from(vec![
+                    let dialog = Paragraph::new(Line::from(vec![
                         Span::raw("Cancel job "),
                         Span::styled(id, Style::default().add_modifier(Modifier::BOLD)),
                         Span::raw("?"),
