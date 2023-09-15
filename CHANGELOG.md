@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.0](https://github.com/kabouzeid/turm/compare/v0.4.0...v0.5.0) (2023-09-15)
+
+
+### Features
+
+* show job count ([c169e18](https://github.com/kabouzeid/turm/commit/c169e1844574885246736dbde920ae0f77b121b2))
+
 ## [0.4.0](https://github.com/kabouzeid/turm/compare/v0.3.0...v0.4.0) (2023-04-23)
 
 
