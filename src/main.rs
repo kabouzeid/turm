@@ -16,7 +16,7 @@ use crossterm::{
 };
 use squeue_args::SqueueArgs;
 use std::{io, thread};
-use tui::{
+use ratatui::{
     backend::{Backend, CrosstermBackend},
     Terminal,
 };
@@ -80,7 +80,7 @@ fn main() -> Result<(), io::Error> {
     Ok(())
 }
 
-fn input_loop(tx: Sender<crossterm::Result<Event>>) {
+fn input_loop(tx: Sender<std::io::Result<Event>>) {
     loop {
         tx.send(event::read()).unwrap();
     }
