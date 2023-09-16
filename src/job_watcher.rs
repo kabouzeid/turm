@@ -36,6 +36,7 @@ impl JobWatcher {
             "partition",
             "nodelist",
             "stdout",
+            "stderr",
             "command",
             "statecompact",
             "reason",
@@ -76,14 +77,15 @@ impl JobWatcher {
                     let partition = parts[6];
                     let nodelist = parts[7];
                     let stdout = parts[8];
-                    let command = parts[9];
-                    let state_compact = parts[10];
-                    let reason = parts[11];
+                    let stderr = parts[9];
+                    let command = parts[10];
+                    let state_compact = parts[11];
+                    let reason = parts[12];
 
-                    let array_job_id = parts[12];
-                    let array_task_id = parts[13];
-                    let node_list = parts[14];
-                    let working_dir = parts[15];
+                    let array_job_id = parts[13];
+                    let array_task_id = parts[14];
+                    let node_list = parts[15];
+                    let working_dir = parts[16];
 
                     Some(Job {
                         job_id: id.to_owned(),
@@ -108,6 +110,16 @@ impl JobWatcher {
                         command: command.to_owned(),
                         stdout: Self::resolve_path(
                             stdout,
+                            array_job_id,
+                            array_task_id,
+                            id,
+                            node_list,
+                            user,
+                            name,
+                            working_dir,
+                        ),
+                        stderr: Self::resolve_path(
+                            stderr,
                             array_job_id,
                             array_task_id,
                             id,
