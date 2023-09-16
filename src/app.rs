@@ -286,36 +286,32 @@ impl App {
             .split(master_detail[1]);
 
         // Help
+        let help_options = vec![
+            ("q", "quit"),
+            ("⏶/⏷", "navigate"),
+            ("pgup/pgdown", "scroll"),
+            ("home/end", "top/bottom"),
+            ("esc", "cancel"),
+            ("enter", "confirm"),
+            ("c", "cancel job"),
+            ("o", "toggle stdout/stderr"),
+        ];
+        let blue_style = Style::default().fg(Color::Blue);
+        let light_blue_style = Style::default().fg(Color::LightBlue);
 
-        let help = Line::from(vec![
-            // ⏴⏵⏶⏷
-            Span::styled("q", Style::default().fg(Color::Blue)),
-            Span::styled(": quit", Style::default().fg(Color::LightBlue)),
-            Span::raw(" | "),
-            Span::styled("⏶/⏷", Style::default().fg(Color::Blue)),
-            Span::styled(": navigate", Style::default().fg(Color::LightBlue)),
-            Span::raw(" | "),
-            Span::styled("pgup/pgdown", Style::default().fg(Color::Blue)),
-            Span::styled(": scroll", Style::default().fg(Color::LightBlue)),
-            Span::raw(" | "),
-            Span::styled("home/end", Style::default().fg(Color::Blue)),
-            Span::styled(": top/bottom", Style::default().fg(Color::LightBlue)),
-            Span::raw(" | "),
-            Span::styled("esc", Style::default().fg(Color::Blue)),
-            Span::styled(": cancel", Style::default().fg(Color::LightBlue)),
-            Span::raw(" | "),
-            Span::styled("enter", Style::default().fg(Color::Blue)),
-            Span::styled(": confirm", Style::default().fg(Color::LightBlue)),
-            Span::raw(" | "),
-            Span::styled("c", Style::default().fg(Color::Blue)),
-            Span::styled(": cancel job", Style::default().fg(Color::LightBlue)),
-            Span::raw(" | "),
-            Span::styled("o", Style::default().fg(Color::Blue)),
-            Span::styled(
-                ": toggle stdout/stderr",
-                Style::default().fg(Color::LightBlue),
-            ),
-        ]);
+        let help = Line::from(help_options.iter().fold(
+            Vec::new(),
+            |mut acc, (key, description)| {
+                if !acc.is_empty() {
+                    acc.push(Span::raw(" | "));
+                }
+                acc.push(Span::styled(*key, blue_style));
+                acc.push(Span::raw(": "));
+                acc.push(Span::styled(*description, light_blue_style));
+                acc
+            },
+        ));
+
         let help = Paragraph::new(help);
         f.render_widget(help, content_help[1]);
 
