@@ -14,12 +14,12 @@ use crossterm::{
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
-use squeue_args::SqueueArgs;
-use std::{io, thread};
 use ratatui::{
     backend::{Backend, CrosstermBackend},
     Terminal,
 };
+use squeue_args::SqueueArgs;
+use std::{io, thread};
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]

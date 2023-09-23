@@ -103,7 +103,7 @@ impl FileWatcher {
                                         let i = self.interval.clone();
                                         thread::spawn(move || FileReader::new(_content_sender, _watch_receiver, p, i).run());
                                     },
-                                    Err(e) => self.app.send(AppMessage::JobStdout(Err(FileWatcherError::Watcher(e)))).unwrap()
+                                    Err(e) => self.app.send(AppMessage::JobOutput(Err(FileWatcherError::Watcher(e)))).unwrap()
                                 };
                             } else {
                                 _content_sender.send(Ok("".to_string())).unwrap();
@@ -113,7 +113,7 @@ impl FileWatcher {
                 }
                 recv(watch_receiver) -> _ => { _watch_sender.send(()).unwrap(); }
                 recv(_content_receiver) -> msg => {
-                    self.app.send(AppMessage::JobStdout(msg.unwrap().map_err(|e| FileWatcherError::File(e)))).unwrap();
+                    self.app.send(AppMessage::JobOutput(msg.unwrap().map_err(|e| FileWatcherError::File(e)))).unwrap();
                 }
             }
         }

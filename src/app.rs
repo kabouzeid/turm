@@ -9,15 +9,15 @@ use crate::file_watcher::{FileWatcherError, FileWatcherHandle};
 use crate::job_watcher::JobWatcherHandle;
 
 use crossterm::event::{Event, KeyCode, KeyEvent};
-use std::io;
 use ratatui::{
     backend::Backend,
     layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
-    text::{Span, Line, Text},
+    text::{Line, Span, Text},
     widgets::{Block, Borders, Clear, List, ListItem, ListState, Paragraph, Wrap},
     Frame, Terminal,
 };
+use std::io;
 
 pub enum Focus {
     Jobs,
@@ -33,19 +33,27 @@ pub enum ScrollAnchor {
     Bottom,
 }
 
+#[derive(Default)]
+pub enum OutputFileView {
+    #[default]
+    Stdout,
+    Stderr,
+}
+
 pub struct App {
     focus: Focus,
     dialog: Option<Dialog>,
     jobs: Vec<Job>,
     job_list_state: ListState,
-    job_stdout: Result<String, FileWatcherError>,
-    job_stdout_anchor: ScrollAnchor,
-    job_stdout_offset: u16,
+    job_output: Result<String, FileWatcherError>,
+    job_output_anchor: ScrollAnchor,
+    job_output_offset: u16,
     _job_watcher: JobWatcherHandle,
-    job_stdout_watcher: FileWatcherHandle,
+    job_output_watcher: FileWatcherHandle,
     // sender: Sender<AppMessage>,
     receiver: Receiver<AppMessage>,
     input_receiver: Receiver<std::io::Result<Event>>,
+    output_file_view: OutputFileView,
 }
 
 pub struct Job {
@@ -62,8 +70,8 @@ pub struct Job {
     pub partition: String,
     pub nodelist: String,
     pub stdout: Option<PathBuf>,
+    pub stderr: Option<PathBuf>,
     pub command: String,
-    // pub stderr: Option<PathBuf>,
 }
 
 impl Job {
@@ -77,7 +85,7 @@ impl Job {
 
 pub enum AppMessage {
     Jobs(Vec<Job>),
-    JobStdout(Result<String, FileWatcherError>),
+    JobOutput(Result<String, FileWatcherError>),
     Key(KeyEvent),
 }
 
@@ -103,16 +111,17 @@ impl App {
                 s.select(Some(0));
                 s
             },
-            job_stdout: Ok("".to_string()),
-            job_stdout_anchor: ScrollAnchor::Bottom,
-            job_stdout_offset: 0,
-            job_stdout_watcher: FileWatcherHandle::new(
+            job_output: Ok("".to_string()),
+            job_output_anchor: ScrollAnchor::Bottom,
+            job_output_offset: 0,
+            job_output_watcher: FileWatcherHandle::new(
                 sender.clone(),
                 Duration::from_secs(file_refresh_rate),
             ),
             // sender,
             receiver: receiver,
             input_receiver: input_receiver,
+            output_file_view: OutputFileView::default(),
         }
     }
 }
@@ -147,7 +156,7 @@ impl App {
     fn handle(&mut self, msg: AppMessage) {
         match msg {
             AppMessage::Jobs(jobs) => self.jobs = jobs,
-            AppMessage::JobStdout(content) => self.job_stdout = content,
+            AppMessage::JobOutput(content) => self.job_output = content,
             AppMessage::Key(key) => {
                 if let Some(dialog) = &self.dialog {
                     match dialog {
@@ -187,14 +196,14 @@ impl App {
                             } else {
                                 1
                             };
-                            match self.job_stdout_anchor {
+                            match self.job_output_anchor {
                                 ScrollAnchor::Top => {
-                                    self.job_stdout_offset =
-                                        self.job_stdout_offset.saturating_add(delta)
+                                    self.job_output_offset =
+                                        self.job_output_offset.saturating_add(delta)
                                 }
                                 ScrollAnchor::Bottom => {
-                                    self.job_stdout_offset =
-                                        self.job_stdout_offset.saturating_sub(delta)
+                                    self.job_output_offset =
+                                        self.job_output_offset.saturating_sub(delta)
                                 }
                             }
                         }
@@ -208,24 +217,24 @@ impl App {
                             } else {
                                 1
                             };
-                            match self.job_stdout_anchor {
+                            match self.job_output_anchor {
                                 ScrollAnchor::Top => {
-                                    self.job_stdout_offset =
-                                        self.job_stdout_offset.saturating_sub(delta)
+                                    self.job_output_offset =
+                                        self.job_output_offset.saturating_sub(delta)
                                 }
                                 ScrollAnchor::Bottom => {
-                                    self.job_stdout_offset =
-                                        self.job_stdout_offset.saturating_add(delta)
+                                    self.job_output_offset =
+                                        self.job_output_offset.saturating_add(delta)
                                 }
                             }
                         }
                         KeyCode::Home => {
-                            self.job_stdout_offset = 0;
-                            self.job_stdout_anchor = ScrollAnchor::Top;
+                            self.job_output_offset = 0;
+                            self.job_output_anchor = ScrollAnchor::Top;
                         }
                         KeyCode::End => {
-                            self.job_stdout_offset = 0;
-                            self.job_stdout_anchor = ScrollAnchor::Bottom;
+                            self.job_output_offset = 0;
+                            self.job_output_anchor = ScrollAnchor::Bottom;
                         }
                         KeyCode::Char('c') => {
                             if let Some(id) = self
@@ -236,6 +245,12 @@ impl App {
                                 self.dialog = Some(Dialog::ConfirmCancelJob(id));
                             }
                         }
+                        KeyCode::Char('o') => {
+                            self.output_file_view = match self.output_file_view {
+                                OutputFileView::Stdout => OutputFileView::Stderr,
+                                OutputFileView::Stderr => OutputFileView::Stdout,
+                            };
+                        }
                         _ => {}
                     };
                 }
@@ -243,11 +258,13 @@ impl App {
         }
 
         // update
-        self.job_stdout_watcher.set_file_path(
-            self.job_list_state
-                .selected()
-                .and_then(|i| self.jobs.get(i).and_then(|j| j.stdout.clone())),
-        );
+        self.job_output_watcher
+            .set_file_path(self.job_list_state.selected().and_then(|i| {
+                self.jobs.get(i).and_then(|j| match self.output_file_view {
+                    OutputFileView::Stdout => j.stdout.clone(),
+                    OutputFileView::Stderr => j.stderr.clone(),
+                })
+            }));
     }
 
     fn ui<B: Backend>(&mut self, f: &mut Frame<B>) {
@@ -269,30 +286,32 @@ impl App {
             .split(master_detail[1]);
 
         // Help
+        let help_options = vec![
+            ("q", "quit"),
+            ("⏶/⏷", "navigate"),
+            ("pgup/pgdown", "scroll"),
+            ("home/end", "top/bottom"),
+            ("esc", "cancel"),
+            ("enter", "confirm"),
+            ("c", "cancel job"),
+            ("o", "toggle stdout/stderr"),
+        ];
+        let blue_style = Style::default().fg(Color::Blue);
+        let light_blue_style = Style::default().fg(Color::LightBlue);
 
-        let help = Line::from(vec![
-            // ⏴⏵⏶⏷
-            Span::styled("q", Style::default().fg(Color::Blue)),
-            Span::styled(": quit", Style::default().fg(Color::LightBlue)),
-            Span::raw(" | "),
-            Span::styled("⏶/⏷", Style::default().fg(Color::Blue)),
-            Span::styled(": navigate", Style::default().fg(Color::LightBlue)),
-            Span::raw(" | "),
-            Span::styled("pgup/pgdown", Style::default().fg(Color::Blue)),
-            Span::styled(": scroll", Style::default().fg(Color::LightBlue)),
-            Span::raw(" | "),
-            Span::styled("home/end", Style::default().fg(Color::Blue)),
-            Span::styled(": top/bottom", Style::default().fg(Color::LightBlue)),
-            Span::raw(" | "),
-            Span::styled("esc", Style::default().fg(Color::Blue)),
-            Span::styled(": cancel", Style::default().fg(Color::LightBlue)),
-            Span::raw(" | "),
-            Span::styled("enter", Style::default().fg(Color::Blue)),
-            Span::styled(": confirm", Style::default().fg(Color::LightBlue)),
-            Span::raw(" | "),
-            Span::styled("c", Style::default().fg(Color::Blue)),
-            Span::styled(": cancel job", Style::default().fg(Color::LightBlue)),
-        ]);
+        let help = Line::from(help_options.iter().fold(
+            Vec::new(),
+            |mut acc, (key, description)| {
+                if !acc.is_empty() {
+                    acc.push(Span::raw(" | "));
+                }
+                acc.push(Span::styled(*key, blue_style));
+                acc.push(Span::raw(": "));
+                acc.push(Span::styled(*description, light_blue_style));
+                acc
+            },
+        ));
+
         let help = Paragraph::new(help);
         f.render_widget(help, content_help[1]);
 
@@ -403,14 +422,21 @@ impl App {
                 Span::raw(" "),
                 Span::raw(&j.tres),
             ]);
+            let ui_stdout_text = match self.output_file_view {
+                OutputFileView::Stdout => "stdout ",
+                OutputFileView::Stderr => "stderr ",
+            };
             let stdout = Line::from(vec![
-                Span::styled("stdout ", Style::default().fg(Color::Yellow)),
+                Span::styled(ui_stdout_text, Style::default().fg(Color::Yellow)),
                 Span::raw(" "),
                 Span::raw(
-                    j.stdout
-                        .as_ref()
-                        .map(|p| p.to_str().unwrap_or_default())
-                        .unwrap_or_default(),
+                    match self.output_file_view {
+                        OutputFileView::Stdout => &j.stdout,
+                        OutputFileView::Stderr => &j.stderr,
+                    }
+                    .as_ref()
+                    .map(|p| p.to_str().unwrap_or_default())
+                    .unwrap_or_default(),
                 ),
             ]);
 
@@ -423,13 +449,16 @@ impl App {
         // Log
         let log_area = job_detail_log[1];
         let log_title = Line::from(vec![
-            Span::raw("stdout"),
+            Span::raw(match self.output_file_view {
+                OutputFileView::Stdout => "stdout",
+                OutputFileView::Stderr => "stderr",
+            }),
             Span::styled(
-                match self.job_stdout_anchor {
-                    ScrollAnchor::Top if self.job_stdout_offset == 0 => "[T]".to_string(),
-                    ScrollAnchor::Top => format!("[T+{}]", self.job_stdout_offset),
-                    ScrollAnchor::Bottom if self.job_stdout_offset == 0 => "".to_string(),
-                    ScrollAnchor::Bottom => format!("[B-{}]", self.job_stdout_offset),
+                match self.job_output_anchor {
+                    ScrollAnchor::Top if self.job_output_offset == 0 => "[T]".to_string(),
+                    ScrollAnchor::Top => format!("[T+{}]", self.job_output_offset),
+                    ScrollAnchor::Bottom if self.job_output_offset == 0 => "".to_string(),
+                    ScrollAnchor::Bottom => format!("[B-{}]", self.job_output_offset),
                 },
                 Style::default().add_modifier(Modifier::DIM),
             ),
@@ -448,13 +477,13 @@ impl App {
         //     "".to_string()
         // });
 
-        let log = match self.job_stdout.as_deref() {
+        let log = match self.job_output.as_deref() {
             Ok(s) => Paragraph::new(string_for_paragraph(
                 s,
                 log_block.inner(log_area).height as usize,
                 log_block.inner(log_area).width as usize,
-                self.job_stdout_anchor,
-                self.job_stdout_offset as usize,
+                self.job_output_anchor,
+                self.job_output_offset as usize,
             )),
             Err(e) => Paragraph::new(e.to_string())
                 .style(Style::default().fg(Color::Red))
