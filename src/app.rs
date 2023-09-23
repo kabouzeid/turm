@@ -34,7 +34,7 @@ pub enum ScrollAnchor {
 }
 
 #[derive(Default)]
-pub enum FileView {
+pub enum OutputFileView {
     #[default]
     Stdout,
     Stderr,
@@ -53,7 +53,7 @@ pub struct App {
     // sender: Sender<AppMessage>,
     receiver: Receiver<AppMessage>,
     input_receiver: Receiver<std::io::Result<Event>>,
-    file_view: FileView,
+    output_file_view: OutputFileView,
 }
 
 pub struct Job {
@@ -121,7 +121,7 @@ impl App {
             // sender,
             receiver: receiver,
             input_receiver: input_receiver,
-            file_view: FileView::default(),
+            output_file_view: OutputFileView::default(),
         }
     }
 }
@@ -246,9 +246,9 @@ impl App {
                             }
                         }
                         KeyCode::Char('o') => {
-                            self.file_view = match self.file_view {
-                                FileView::Stdout => FileView::Stderr,
-                                FileView::Stderr => FileView::Stdout,
+                            self.output_file_view = match self.output_file_view {
+                                OutputFileView::Stdout => OutputFileView::Stderr,
+                                OutputFileView::Stderr => OutputFileView::Stdout,
                             };
                         }
                         _ => {}
@@ -260,9 +260,9 @@ impl App {
         // update
         self.job_output_watcher
             .set_file_path(self.job_list_state.selected().and_then(|i| {
-                self.jobs.get(i).and_then(|j| match self.file_view {
-                    FileView::Stdout => j.stdout.clone(),
-                    FileView::Stderr => j.stderr.clone(),
+                self.jobs.get(i).and_then(|j| match self.output_file_view {
+                    OutputFileView::Stdout => j.stdout.clone(),
+                    OutputFileView::Stderr => j.stderr.clone(),
                 })
             }));
     }
@@ -422,17 +422,17 @@ impl App {
                 Span::raw(" "),
                 Span::raw(&j.tres),
             ]);
-            let ui_stdout_text = match self.file_view {
-                FileView::Stdout => "stdout ",
-                FileView::Stderr => "stderr ",
+            let ui_stdout_text = match self.output_file_view {
+                OutputFileView::Stdout => "stdout ",
+                OutputFileView::Stderr => "stderr ",
             };
             let stdout = Line::from(vec![
                 Span::styled(ui_stdout_text, Style::default().fg(Color::Yellow)),
                 Span::raw(" "),
                 Span::raw(
-                    match self.file_view {
-                        FileView::Stdout => &j.stdout,
-                        FileView::Stderr => &j.stderr,
+                    match self.output_file_view {
+                        OutputFileView::Stdout => &j.stdout,
+                        OutputFileView::Stderr => &j.stderr,
                     }
                     .as_ref()
                     .map(|p| p.to_str().unwrap_or_default())
@@ -449,9 +449,9 @@ impl App {
         // Log
         let log_area = job_detail_log[1];
         let log_title = Line::from(vec![
-            Span::raw(match self.file_view {
-                FileView::Stdout => "stdout",
-                FileView::Stderr => "stderr",
+            Span::raw(match self.output_file_view {
+                OutputFileView::Stdout => "stdout",
+                OutputFileView::Stderr => "stderr",
             }),
             Span::styled(
                 match self.job_output_anchor {
