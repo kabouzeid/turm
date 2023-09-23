@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.0](https://github.com/kabouzeid/turm/compare/v0.5.0...v0.6.0) (2023-09-23)
+
+
+### Features
+
+* toggle stdout/stderr ([bcd773b](https://github.com/kabouzeid/turm/commit/bcd773bd21ccb64860e651e2da881d57253fecb8))
+
 ## [0.5.0](https://github.com/kabouzeid/turm/compare/v0.4.0...v0.5.0) (2023-09-15)
 
 
