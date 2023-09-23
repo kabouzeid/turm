@@ -120,6 +120,13 @@ jobs:
           name: ${{ matrix.name }}
           path: ${{ matrix.name }}
 
+      - name: Release | Cargo Publish
+        # run only once
+        if: matrix.target == 'x86_64-unknown-linux-gnu'
+        uses: actions-rs/cargo@v1.0.3
+        with:
+          command: publish
+
   # Create GitHub release with Rust build targets and release notes
   upload_artifacts:
     name: Add Build Artifacts to Release
