@@ -85,7 +85,7 @@ impl Job {
 
 pub enum AppMessage {
     Jobs(Vec<Job>),
-    JobStdout(Result<String, FileWatcherError>),
+    JobOutput(Result<String, FileWatcherError>),
     Key(KeyEvent),
 }
 
@@ -156,7 +156,7 @@ impl App {
     fn handle(&mut self, msg: AppMessage) {
         match msg {
             AppMessage::Jobs(jobs) => self.jobs = jobs,
-            AppMessage::JobStdout(content) => self.job_output = content,
+            AppMessage::JobOutput(content) => self.job_output = content,
             AppMessage::Key(key) => {
                 if let Some(dialog) = &self.dialog {
                     match dialog {
