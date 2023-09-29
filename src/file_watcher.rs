@@ -12,6 +12,7 @@ use crossbeam::{
     select,
 };
 use notify::{event::ModifyKind, RecursiveMode, Watcher};
+use tempfile::NamedTempFile;
 
 use crate::app::AppMessage;
 
@@ -70,7 +71,10 @@ impl FileWatcher {
     fn run(&mut self) -> Result<(), RecvError> {
         let (watch_sender, watch_receiver) = unbounded();
         let mut watcher = notify::recommended_watcher(move |res: notify::Result<notify::Event>| {
-            let event = res.unwrap();
+            let event = match res {
+                Ok(e) => e,
+                Err(_) => return,
+            };
             match event.kind {
                 notify::EventKind::Modify(ModifyKind::Data(_)) => {
                     watch_sender.send(event.paths).unwrap();
@@ -79,6 +83,49 @@ impl FileWatcher {
             };
         })
         .unwrap();
+
+        // Check if the file watcher limit is reached by creating a file, watching it and then deleting it
+        let tmp_file = NamedTempFile::new().unwrap();
+        let tmp_file_path = tmp_file.path();
+        let watcher_result = watcher.watch(tmp_file_path, RecursiveMode::NonRecursive);
+        let max_watches_reached = match watcher_result {
+            Err(notify::Error {
+                kind: notify::ErrorKind::MaxFilesWatch,
+                ..
+            }) => true,
+            Ok(_) => {
+                watcher.unwatch(tmp_file_path).unwrap();
+                false
+            }
+            _ => false,
+        };
+        let _ = tmp_file.close();
+
+        let config = notify::Config::default()
+            .with_poll_interval(Duration::from_secs(2))
+            .with_compare_contents(false);
+
+        let mut watcher = if max_watches_reached {
+            let (watch_sender, _) = unbounded();
+            let watcher = notify::PollWatcher::new(
+                move |res: notify::Result<notify::Event>| {
+                    let event = match res {
+                        Ok(e) => e,
+                        Err(_) => return,
+                    };
+                    match event.kind {
+                        notify::EventKind::Modify(ModifyKind::Data(_)) => {
+                            let _ = watch_sender.send(event.paths);
+                        }
+                        _ => {}
+                    };
+                },
+                config,
+            );
+            Box::new(watcher.unwrap()) as Box<dyn Watcher>
+        } else {
+            Box::new(watcher) as Box<dyn Watcher>
+        };
 
         let (mut _content_sender, mut _content_receiver) = unbounded::<io::Result<String>>();
         let (mut _watch_sender, mut _watch_receiver) = unbounded::<()>();
@@ -91,7 +138,7 @@ impl FileWatcher {
                             (_watch_sender, _watch_receiver) = unbounded::<()>();
 
                             if let Some(p) = &self.file_path {
-                                watcher.unwatch(p).expect(format!("Failed to unwatch {:?}", p).as_str());
+                                let _ = watcher.unwatch(p);
                                 self.file_path = None;
                             }
 
@@ -177,9 +224,7 @@ impl FileWatcherHandle {
     pub fn set_file_path(&mut self, file_path: Option<PathBuf>) {
         if self.file_path != file_path {
             self.file_path = file_path.clone();
-            self.sender
-                .send(FileWatcherMessage::FilePath(file_path))
-                .unwrap();
+            let _ = self.sender.send(FileWatcherMessage::FilePath(file_path));
         }
     }
 }
