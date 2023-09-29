@@ -12,6 +12,7 @@ use crossbeam::{
     select,
 };
 use notify::{event::ModifyKind, RecursiveMode, Watcher};
+use tempfile::NamedTempFile;
 
 use crate::app::AppMessage;
 
@@ -84,8 +85,8 @@ impl FileWatcher {
         .unwrap();
 
         // Check if the file watcher limit is reached by creating a file, watching it and then deleting it
-        let tmp_file_path = Path::new("/tmp/turm_file_watcher_limit_test");
-        File::create(tmp_file_path).unwrap();
+        let tmp_file = NamedTempFile::new().unwrap();
+        let tmp_file_path = tmp_file.path();
         let watcher_result = watcher.watch(tmp_file_path, RecursiveMode::NonRecursive);
         let max_watches_reached = match watcher_result {
             Err(notify::Error {
@@ -98,7 +99,7 @@ impl FileWatcher {
             }
             _ => false,
         };
-        std::fs::remove_file(tmp_file_path).unwrap();
+        let _ = tmp_file.close();
 
         let config = notify::Config::default()
             .with_poll_interval(Duration::from_secs(2))
