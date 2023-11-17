@@ -56,7 +56,7 @@ impl JobWatcher {
             "partition",
             "nodelist",
             "stdout:80",
-            "stderr",
+            "stderr:80",
             "command:80",
             "statecompact",
             "reason",
