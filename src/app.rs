@@ -267,7 +267,7 @@ impl App {
             }));
     }
 
-    fn ui<B: Backend>(&mut self, f: &mut Frame<B>) {
+    fn ui(&mut self, f: &mut Frame) {
         // Layout
 
         let content_help = Layout::default()
