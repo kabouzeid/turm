@@ -465,23 +465,10 @@ impl App {
         ]);
         let log_block = Block::default().title(log_title).borders(Borders::ALL);
 
-        // let job_log = self.job_stdout.as_deref().map(|s| {
-        //     string_for_paragraph(
-        //         s,
-        //         log_block.inner(log_area).height as usize,
-        //         log_block.inner(log_area).width as usize,
-        //         self.job_stdout_offset as usize,
-        //     )
-        // }).unwrap_or_else(|e| {
-        //     self.job_stdout_offset = 0;
-        //     "".to_string()
-        // });
-
         let log = match self.job_output.as_deref() {
             Ok(s) => Paragraph::new(string_for_paragraph(
                 s,
                 log_block.inner(log_area).height as usize,
-                log_block.inner(log_area).width as usize,
                 self.job_output_anchor,
                 self.job_output_offset as usize,
             )),
@@ -536,26 +523,43 @@ impl App {
     }
 }
 
-fn string_for_paragraph(
-    s: &str,
-    lines: usize,
-    cols: usize,
-    anchor: ScrollAnchor,
-    offset: usize,
-) -> String {
-    let s = s.rsplit_once(&['\r', '\n']).map_or(s, |(p, _)| p); // skip everything after last line delimiter
-    let l = s.lines().flat_map(|l| l.split('\r')); // bandaid for term escape codes
+pub fn process_terminal_output(input: &str) -> Vec<String> {
+    input
+        .lines()
+        .map(|line| {
+            let mut result = String::new();
+            for char in line.chars() {
+                if char == '\x08' {
+                    result.pop();
+                } else if char == '\r' {
+                    result.clear();
+                } else {
+                    result.push(char);
+                }
+            }
+            result
+        })
+        .collect()
+}
+
+fn string_for_paragraph(s: &str, lines: usize, anchor: ScrollAnchor, offset: usize) -> String {
+    // skip everything after last line delimiter
+    let s = s.rsplit_once(&['\r', '\n']).map_or(s, |(p, _)| p);
+    
+    let l = process_terminal_output(s);
     let l = match anchor {
         ScrollAnchor::Top => l
+            .iter()
             .skip(offset)
             .take(lines)
-            .map(|l| l.chars().take(cols).collect::<String>())
+            .map(|l| l.chars().collect::<String>())
             .collect::<Vec<_>>(),
         ScrollAnchor::Bottom => l
+            .iter()
             .rev()
             .skip(offset)
             .take(lines)
-            .map(|l| l.chars().take(cols).collect::<String>())
+            .map(|l| l.chars().collect::<String>())
             .collect::<Vec<_>>()
             .into_iter()
             .rev()
