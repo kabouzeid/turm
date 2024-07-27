@@ -168,7 +168,7 @@ impl JobWatcher {
             }
             .to_str()
             .unwrap()
-            .to_owned()
+            .to_owned();
         };
 
         for cap in RE
@@ -196,7 +196,7 @@ impl JobWatcher {
             path.replace_range(m.range(), replacement);
         }
 
-        Some(PathBuf::from(path))
+        Some(PathBuf::from(working_dir).join(path)) // works even if `path` is absolute
     }
 }
 
