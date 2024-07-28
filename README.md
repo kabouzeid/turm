@@ -6,51 +6,45 @@ A text-based user interface (TUI) for the [Slurm Workload Manager](https://slurm
 
 `turm` accepts the same options as `squeue` (see [man squeue](https://slurm.schedmd.com/squeue.html#SECTION_OPTIONS)). Use `turm --help` to get a list of all available options.
 
-## Project status
-
-This project is currently a work in progress but the basic functionality is there.
-There are still some missing features that need to be implemented and a few visual bugs present at the moment. 
-Please feel free to submit any issues or feedback you may have.
-
 ## Installation
 
-### From source
+`turm` is available on [PyPI](https://pypi.org/project/turm/) and [crates.io](https://crates.io/crates/turm):
 
-```bash
+```shell
+# With pip.
+pip install turm
+
+# With pipx.
+pipx install turm
+
+# With cargo.
 cargo install turm
 ```
 
-### From binaries
+The [release page](https://github.com/kabouzeid/turm/releases) also contains precompiled binaries for Linux.
 
-The [release page](https://github.com/kabouzeid/turm/releases) includes precompiled binaries for Linux, macOS and Windows.
-Statically-linked binaries are also available: look for archives with `musl` in the file name.
+### Shell Completion (optional)
 
-## Shell Completion
-
-### Bash
+#### Bash
 
 In your `.bashrc`, add the following line:
 ```bash
 eval "$(turm completion bash)"
 ```
 
-### Zsh
+#### Zsh
 
 In your `.zshrc`, add the following line:
 ```zsh
 eval "$(turm completion zsh)"
 ```
 
-### Fish
+#### Fish
 
 In your `config.fish` or in a separate `completions/turm.fish` file, add the following line:
 ```fish
 turm completion fish | source
 ```
-
-### Other Shells
-
-Completion scripts for other shells (`elvish` and `powershell`) can be generated with `turm completion <shell>`.
 
 ## How it works
 
@@ -59,7 +53,7 @@ The reason for this is that `squeue` is available on all Slurm clusters, and run
 In contrast, Slurm's C API is unstable, and Slurm's REST API is not always available and can be costly for the Slurm controller.
 Another advantage is that we get free support for the exact same CLI flags as `squeue`, which users are already familiar with, for filtering and sorting the jobs.
 
-## Ressource usage
+### Ressource usage
 
 TL;DR: `turm` ≈ `watch -n2 squeue` + `tail -f slurm-log.out`
 
