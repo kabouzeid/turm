@@ -652,7 +652,7 @@ fn fit_text(
                 match l.chars().nth(cols) {
                     Some(_) => { // has more chars than cols
                         Either::Right(once(Line::default().spans(vec![
-                            Span::raw(l.chars().take(cols - 1).collect::<String>()),
+                            Span::raw(l.chars().take(cols.saturating_sub(1)).collect::<String>()),
                             Span::styled("…", Style::default().add_modifier(Modifier::DIM)),
                         ])))
                     }
