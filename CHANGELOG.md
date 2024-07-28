@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.2](https://github.com/kabouzeid/turm/compare/v0.7.1...v0.7.2) (2024-07-28)
+
+
+### Bug Fixes
+
+* crash on resize ([96f4f16](https://github.com/kabouzeid/turm/commit/96f4f1683ee98547dadc610cf21f293858ba9d50))
+
 ## [0.7.1](https://github.com/kabouzeid/turm/compare/v0.6.0...v0.7.1) (2024-07-28)
 
 
