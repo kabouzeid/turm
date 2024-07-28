@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.7.0](https://github.com/kabouzeid/turm/compare/v0.6.0...v0.7.0) (2024-07-28)
+
+
+### Features
+
+* pretty text wrapping ([51dc964](https://github.com/kabouzeid/turm/commit/51dc9645f506b89a0444db64cab6ddc0d2ecdaf0))
+* toggle log text wrapping. update deps ([5243a36](https://github.com/kabouzeid/turm/commit/5243a368c173070c58ce8a51bce56be9f916ec21))
+* truncated line indicator ([f347664](https://github.com/kabouzeid/turm/commit/f347664ecd94db785140eac296e37d66e203a81b))
+
+
+### Bug Fixes
+
+* correctly resolve relative log file paths ([0ecc902](https://github.com/kabouzeid/turm/commit/0ecc902f036244ed67d29eb686dcbf2c413ec51c))
+
 ## [0.6.0](https://github.com/kabouzeid/turm/compare/v0.5.0...v0.6.0) (2023-09-23)
 
 
