@@ -5,6 +5,7 @@ on:
 env:
   CARGO_INCREMENTAL: 0
   CARGO_NET_RETRY: 10
+  CARGO_TERM_COLOR: always
   RUST_BACKTRACE: short
   RUSTUP_MAX_RETRIES: 10
   MACOSX_DEPLOYMENT_TARGET: 10.7
@@ -120,16 +121,6 @@ jobs:
           name: ${{ matrix.name }}
           path: ${{ matrix.name }}
 
-      - name: Release | Cargo Publish
-        # run only once
-        if: matrix.target == 'x86_64-unknown-linux-gnu'
-        uses: actions-rs/cargo@v1.0.3
-        env:
-          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
-        with:
-          command: publish
-        continue-on-error: true
-
   # Create GitHub release with Rust build targets and release notes
   upload_artifacts:
     name: Add Build Artifacts to Release
@@ -149,3 +140,14 @@ jobs:
         with:
           files: turm-*/turm-*
           tag_name: ${{ needs.release_please.outputs.tag_name }}
+
+  cargo_publish:
+    name: Publish to crates.io
+    needs: [upload_artifacts] # only publish if everything else worked
+    runs-on: ubuntu-latest
+    env:
+      CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+    steps:
+    - uses: actions/checkout@v4
+    - name: Publish
+      run: cargo publish
