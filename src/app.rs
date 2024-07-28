@@ -2,7 +2,8 @@ use crossbeam::{
     channel::{unbounded, Receiver},
     select,
 };
-use std::{cmp::min, path::PathBuf, process::Command};
+use itertools::Either;
+use std::{cmp::min, iter::once, path::PathBuf, process::Command};
 use std::{process::Stdio, time::Duration};
 
 use crate::file_watcher::{FileWatcherError, FileWatcherHandle};
@@ -48,6 +49,7 @@ pub struct App {
     job_output: Result<String, FileWatcherError>,
     job_output_anchor: ScrollAnchor,
     job_output_offset: u16,
+    job_output_wrap: bool,
     _job_watcher: JobWatcherHandle,
     job_output_watcher: FileWatcherHandle,
     // sender: Sender<AppMessage>,
@@ -114,6 +116,7 @@ impl App {
             job_output: Ok("".to_string()),
             job_output_anchor: ScrollAnchor::Bottom,
             job_output_offset: 0,
+            job_output_wrap: false,
             job_output_watcher: FileWatcherHandle::new(
                 sender.clone(),
                 Duration::from_secs(file_refresh_rate),
@@ -251,6 +254,9 @@ impl App {
                                 OutputFileView::Stderr => OutputFileView::Stdout,
                             };
                         }
+                        KeyCode::Char('w') => {
+                            self.job_output_wrap = !self.job_output_wrap;
+                        }
                         _ => {}
                     };
                 }
@@ -295,6 +301,7 @@ impl App {
             ("enter", "confirm"),
             ("c", "cancel job"),
             ("o", "toggle stdout/stderr"),
+            ("w", "toggle text wrap"),
         ];
         let blue_style = Style::default().fg(Color::Blue);
         let light_blue_style = Style::default().fg(Color::LightBlue);
@@ -484,6 +491,7 @@ impl App {
                 log_block.inner(log_area).width as usize,
                 self.job_output_anchor,
                 self.job_output_offset as usize,
+                self.job_output_wrap,
             )),
             Err(e) => Paragraph::new(e.to_string())
                 .style(Style::default().fg(Color::Red))
@@ -536,24 +544,81 @@ impl App {
     }
 }
 
+fn chunked_string(s: &str, chunk_size: usize) -> Vec<&str> {
+    let stepped_indices = s
+        .char_indices()
+        .map(|(i, _)| i)
+        .step_by(chunk_size)
+        .collect::<Vec<_>>();
+    let windows = stepped_indices.windows(2).collect::<Vec<_>>();
+
+    let iter = windows.iter().map(|w| &s[w[0]..w[1]]);
+    let last_index = *stepped_indices.last().unwrap_or(&0);
+    iter.chain(once(&s[last_index..])).collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_chunked_string() {
+        // Divisible
+        let input = "abcdefghi";
+        let expected = vec!["abc", "def", "ghi"];
+        assert_eq!(chunked_string(input, 3), expected);
+
+        // Not divisible
+        let input = "123456789";
+        let expected = vec!["12", "34", "56", "78", "9"];
+        assert_eq!(chunked_string(input, 2), expected);
+
+        // Smaller
+        let input = "abc";
+        let expected = vec!["abc"];
+        assert_eq!(chunked_string(input, 4), expected);
+
+        // Empty
+        let input = "";
+        let expected: Vec<&str> = vec![""];
+        assert_eq!(chunked_string(input, 3), expected);
+    }
+}
+
 fn string_for_paragraph(
     s: &str,
     lines: usize,
     cols: usize,
     anchor: ScrollAnchor,
     offset: usize,
+    wrap: bool,
 ) -> String {
     let s = s.rsplit_once(&['\r', '\n']).map_or(s, |(p, _)| p); // skip everything after last line delimiter
     let l = s.lines().flat_map(|l| l.split('\r')); // bandaid for term escape codes
     let l = match anchor {
         ScrollAnchor::Top => l
             .skip(offset)
+            .flat_map(|l| {
+                if wrap {
+                    Either::Left(chunked_string(l, cols).into_iter())
+                } else {
+                    Either::Right(once(l))
+                }
+            })
             .take(lines)
             .map(|l| l.chars().take(cols).collect::<String>())
             .collect::<Vec<_>>(),
         ScrollAnchor::Bottom => l
             .rev()
             .skip(offset)
+            .flat_map(|l| {
+                if wrap {
+                    Either::Left(chunked_string(l, cols).into_iter())
+                } else {
+                    Either::Right(once(l))
+                }
+                .rev()
+            })
             .take(lines)
             .map(|l| l.chars().take(cols).collect::<String>())
             .collect::<Vec<_>>()
