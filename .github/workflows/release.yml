@@ -59,8 +59,6 @@ jobs:
             name: turm-arm-unknown-linux-musleabihf.tar.gz
 
     runs-on: ${{ matrix.os }}
-    env:
-      RUSTFLAGS: ${{ matrix.rustflags || '' }}
     steps:
       - name: Setup | Checkout
         uses: actions/checkout@v4
@@ -113,6 +111,8 @@ jobs:
           tag_name: ${{ needs.release_please.outputs.tag_name }}
 
   maturin_linux:
+    name: Build Maturin Linux
+    needs: release_please
     if: ${{ needs.release_please.outputs.release_created == 'true' }}
     runs-on: ${{ matrix.platform.runner }}
     strategy:
@@ -146,6 +146,8 @@ jobs:
           path: dist
 
   maturin_musllinux:
+    name: Build Maturin Linux musl
+    needs: release_please
     if: ${{ needs.release_please.outputs.release_created == 'true' }}
     runs-on: ${{ matrix.platform.runner }}
     strategy:
@@ -174,17 +176,6 @@ jobs:
           name: wheels-musllinux-${{ matrix.platform.target }}
           path: dist
           
-  cargo_publish:
-    name: Publish to crates.io
-    needs: [upload_artifacts] # only publish if everything else worked
-    runs-on: ubuntu-latest
-    env:
-      CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
-    steps:
-    - uses: actions/checkout@v4
-    - name: Publish
-      run: cargo publish
-
   maturin_release:
     name: Maturin | Release
     runs-on: ubuntu-latest
@@ -198,3 +189,14 @@ jobs:
         with:
           command: upload
           args: --non-interactive --skip-existing wheels-*/*
+          
+  cargo_publish:
+    name: Publish to crates.io
+    needs: [upload_artifacts, maturin_release] # only publish if everything else worked
+    runs-on: ubuntu-latest
+    env:
+      CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+    steps:
+    - uses: actions/checkout@v4
+    - name: Publish
+      run: cargo publish
