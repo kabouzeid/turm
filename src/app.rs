@@ -649,7 +649,16 @@ fn fit_text(
                         }),
                 )
             } else {
-                Either::Right(once(Line::raw(l.chars().take(cols).collect::<String>())))
+                let mut str = l.chars().take(cols + 1).collect::<String>();
+                if str.chars().count() > cols {
+                    str.truncate(cols - 1);
+                    Either::Right(once(Line::default().spans(vec![
+                        Span::raw(str),
+                        Span::styled("…", Style::default().add_modifier(Modifier::DIM)),
+                    ])))
+                } else {
+                    Either::Right(once(Line::raw(str)))
+                }
             };
             match anchor {
                 ScrollAnchor::Top => Either::Left(iter),
