@@ -649,15 +649,14 @@ fn fit_text(
                         }),
                 )
             } else {
-                let mut str = l.chars().take(cols + 1).collect::<String>();
-                if str.chars().count() > cols {
-                    str.truncate(cols - 1);
-                    Either::Right(once(Line::default().spans(vec![
-                        Span::raw(str),
-                        Span::styled("…", Style::default().add_modifier(Modifier::DIM)),
-                    ])))
-                } else {
-                    Either::Right(once(Line::raw(str)))
+                match l.chars().nth(cols) {
+                    Some(_) => { // has more chars than cols
+                        Either::Right(once(Line::default().spans(vec![
+                            Span::raw(l.chars().take(cols - 1).collect::<String>()),
+                            Span::styled("…", Style::default().add_modifier(Modifier::DIM)),
+                        ])))
+                    }
+                    None => Either::Right(once(Line::raw(l.chars().take(cols).collect::<String>()))),
                 }
             };
             match anchor {
