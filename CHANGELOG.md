@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.3](https://github.com/kabouzeid/turm/compare/v0.7.2...v0.7.3) (2024-07-28)
+
+
+### Miscellaneous Chores
+
+* release 0.7.3 ([ae8665b](https://github.com/kabouzeid/turm/commit/ae8665b25d68842dc1100f85aee643bc122ef52f))
+
 ## [0.7.2](https://github.com/kabouzeid/turm/compare/v0.7.1...v0.7.2) (2024-07-28)
 
 
