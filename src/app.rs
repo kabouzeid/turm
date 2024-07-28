@@ -485,7 +485,7 @@ impl App {
         // });
 
         let log = match self.job_output.as_deref() {
-            Ok(s) => Paragraph::new(string_for_paragraph(
+            Ok(s) => Paragraph::new(fit_text(
                 s,
                 log_block.inner(log_area).height as usize,
                 log_block.inner(log_area).width as usize,
@@ -544,11 +544,19 @@ impl App {
     }
 }
 
-fn chunked_string(s: &str, chunk_size: usize) -> Vec<&str> {
+fn chunked_string(s: &str, first_chunk_size: usize, chunk_size: usize) -> Vec<&str> {
     let stepped_indices = s
         .char_indices()
         .map(|(i, _)| i)
-        .step_by(chunk_size)
+        .enumerate()
+        .filter(|&(i, _)| {
+            if i > (first_chunk_size) {
+                chunk_size > 0 && (i - first_chunk_size) % chunk_size == 0
+            } else {
+                i == 0 || i == first_chunk_size
+            }
+        })
+        .map(|(_, e)| e)
         .collect::<Vec<_>>();
     let windows = stepped_indices.windows(2).collect::<Vec<_>>();
 
@@ -564,69 +572,101 @@ mod tests {
     #[test]
     fn test_chunked_string() {
         // Divisible
-        let input = "abcdefghi";
-        let expected = vec!["abc", "def", "ghi"];
-        assert_eq!(chunked_string(input, 3), expected);
+        let input = "abcdefghij";
+        let expected = vec!["abcd", "ef", "gh", "ij"];
+        assert_eq!(chunked_string(input, 4, 2), expected);
 
         // Not divisible
         let input = "123456789";
-        let expected = vec!["12", "34", "56", "78", "9"];
-        assert_eq!(chunked_string(input, 2), expected);
+        let expected = vec!["1234", "56", "78", "9"];
+        assert_eq!(chunked_string(input, 4, 2), expected);
 
         // Smaller
         let input = "abc";
         let expected = vec!["abc"];
-        assert_eq!(chunked_string(input, 4), expected);
+        assert_eq!(chunked_string(input, 4, 2), expected);
+
+        // Smaller
+        let input = "abcde";
+        let expected = vec!["abcd", "e"];
+        assert_eq!(chunked_string(input, 4, 2), expected);
 
         // Empty
         let input = "";
         let expected: Vec<&str> = vec![""];
-        assert_eq!(chunked_string(input, 3), expected);
+        assert_eq!(chunked_string(input, 4, 2), expected);
+
+        let input = "123456789";
+        let expected = vec!["1234", "56789"];
+        assert_eq!(chunked_string(input, 4, 0), expected);
+
+        let input = "123456789";
+        let expected = vec!["12", "34", "56", "78", "9"];
+        assert_eq!(chunked_string(input, 0, 2), expected);
+
+        let input = "123456789";
+        let expected = vec!["123456789"];
+        assert_eq!(chunked_string(input, 0, 0), expected);
     }
 }
 
-fn string_for_paragraph(
+fn fit_text(
     s: &str,
     lines: usize,
     cols: usize,
     anchor: ScrollAnchor,
     offset: usize,
     wrap: bool,
-) -> String {
+) -> Text {
     let s = s.rsplit_once(&['\r', '\n']).map_or(s, |(p, _)| p); // skip everything after last line delimiter
     let l = s.lines().flat_map(|l| l.split('\r')); // bandaid for term escape codes
-    let l = match anchor {
-        ScrollAnchor::Top => l
-            .skip(offset)
-            .flat_map(|l| {
-                if wrap {
-                    Either::Left(chunked_string(l, cols).into_iter())
-                } else {
-                    Either::Right(once(l))
-                }
-            })
-            .take(lines)
-            .map(|l| l.chars().take(cols).collect::<String>())
-            .collect::<Vec<_>>(),
-        ScrollAnchor::Bottom => l
-            .rev()
-            .skip(offset)
-            .flat_map(|l| {
-                if wrap {
-                    Either::Left(chunked_string(l, cols).into_iter())
-                } else {
-                    Either::Right(once(l))
-                }
-                .rev()
-            })
-            .take(lines)
-            .map(|l| l.chars().take(cols).collect::<String>())
-            .collect::<Vec<_>>()
-            .into_iter()
-            .rev()
-            .collect::<Vec<_>>(),
+    let iter = match anchor {
+        ScrollAnchor::Top => Either::Left(l),
+        ScrollAnchor::Bottom => Either::Right(l.rev()),
     };
-    l.join("\n")
+    let iter = iter
+        .skip(offset)
+        .flat_map(|l| {
+            let iter = if wrap {
+                Either::Left(
+                    chunked_string(l, cols, cols.saturating_sub(2))
+                        .into_iter()
+                        .enumerate()
+                        .map(|(i, l)| {
+                            if i == 0 {
+                                Line::raw(l.chars().take(cols).collect::<String>())
+                            } else {
+                                Line::default().spans(vec![
+                                    Span::styled(
+                                        "↪ ",
+                                        Style::default().add_modifier(Modifier::DIM),
+                                    ),
+                                    Span::raw(
+                                        l.chars().take(cols.saturating_sub(2)).collect::<String>(),
+                                    ),
+                                ])
+                            }
+                        }),
+                )
+            } else {
+                Either::Right(once(Line::raw(l.chars().take(cols).collect::<String>())))
+            };
+            match anchor {
+                ScrollAnchor::Top => Either::Left(iter),
+                ScrollAnchor::Bottom => Either::Right(iter.rev()),
+            }
+        })
+        .take(lines);
+
+    match anchor {
+        ScrollAnchor::Top => Text::from(iter.collect::<Vec<_>>()),
+        ScrollAnchor::Bottom => Text::from(
+            iter.collect::<Vec<_>>()
+                .into_iter()
+                .rev()
+                .collect::<Vec<_>>(),
+        ),
+    }
 }
 
 impl App {
