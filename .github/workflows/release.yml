@@ -21,7 +21,7 @@ jobs:
       contents: write
       pull-requests: write
     steps:
-      - uses: google-github-actions/release-please-action@v3
+      - uses: googleapis/release-please-action@v4
         id: release
         with:
           release-type: rust
@@ -124,8 +124,11 @@ jobs:
         # run only once
         if: matrix.target == 'x86_64-unknown-linux-gnu'
         uses: actions-rs/cargo@v1.0.3
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
         with:
           command: publish
+        continue-on-error: true
 
   # Create GitHub release with Rust build targets and release notes
   upload_artifacts:
