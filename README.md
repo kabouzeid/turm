@@ -22,6 +22,9 @@ uv tool install turm
 
 # With cargo.
 cargo install turm
+
+# With wget. Make sure ~/.local/bin is in your $PATH.
+wget https://github.com/kabouzeid/turm/releases/latest/download/turm-x86_64-unknown-linux-musl.tar.gz -O - | tar -xz -C ~/.local/bin/
 ```
 
 The [release page](https://github.com/kabouzeid/turm/releases) also contains precompiled binaries for Linux.
