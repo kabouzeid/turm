@@ -17,6 +17,9 @@ pip install turm
 # With pipx.
 pipx install turm
 
+# With uv.
+uv tool install turm
+
 # With cargo.
 cargo install turm
 ```
