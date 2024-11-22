@@ -310,7 +310,7 @@ impl App {
         let content_help = Layout::default()
             .direction(Direction::Vertical)
             .constraints([Constraint::Min(3), Constraint::Length(required_help_height)].as_ref())
-            .split(f.size());
+            .split(f.area());
 
         let master_detail = Layout::default()
             .direction(Direction::Horizontal)
@@ -539,7 +539,7 @@ impl App {
                             .style(Style::default().fg(Color::Green)),
                     );
 
-                    let area = centered_lines(75, 3, f.size());
+                    let area = centered_lines(75, 3, f.area());
                     f.render_widget(Clear, area);
                     f.render_widget(dialog, area);
                 }
