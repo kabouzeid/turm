@@ -44,6 +44,7 @@ impl JobWatcher {
             "ArrayTaskID", // %a
             "NodeList",    // %N
             "WorkDir",     // for fallback
+            "tres-per-node",     
         ];
         let output_format = fields
             .map(|s| s.to_owned() + ":" + output_separator)
@@ -73,7 +74,10 @@ impl JobWatcher {
                     let state = parts[2];
                     let user = parts[3];
                     let time = parts[4];
-                    let tres = parts[5];
+                    let tres = match parts[17] {
+                        "N/A" => format!("{}", parts[5]),
+                        _ => format!("{},{}", parts[5],parts[17]),
+                    };
                     let partition = parts[6];
                     let nodelist = parts[7];
                     let stdout = parts[8];
