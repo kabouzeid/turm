@@ -553,6 +553,7 @@ impl App {
                     f.render_widget(Clear, area);
                     f.render_widget(dialog, area);
                 },
+                // TODO: We should be able to remove this repeated code
                 Dialog::CancelJobError(error) => {
                     let dialog = Paragraph::new(Line::from(vec![
                         Span::styled(error, Style::default().add_modifier(Modifier::BOLD)),
