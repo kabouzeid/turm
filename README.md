@@ -11,14 +11,11 @@ A text-based user interface (TUI) for the [Slurm Workload Manager](https://slurm
 `turm` is available on [PyPI](https://pypi.org/project/turm/) and [crates.io](https://crates.io/crates/turm):
 
 ```shell
-# With pip.
-pip install turm
-
-# With pipx.
-pipx install turm
-
 # With uv.
 uv tool install turm
+
+# With pip.
+pip install turm
 
 # With cargo.
 cargo install turm
