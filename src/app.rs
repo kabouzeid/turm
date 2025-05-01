@@ -274,23 +274,6 @@ impl App {
     }
 
     fn ui(&mut self, f: &mut Frame) {
-        // Layout
-
-        let content_help = Layout::default()
-            .direction(Direction::Vertical)
-            .constraints([Constraint::Min(3), Constraint::Length(1)].as_ref())
-            .split(f.size());
-
-        let master_detail = Layout::default()
-            .direction(Direction::Horizontal)
-            .constraints([Constraint::Min(50), Constraint::Percentage(70)].as_ref())
-            .split(content_help[0]);
-
-        let job_detail_log = Layout::default()
-            .direction(Direction::Vertical)
-            .constraints([Constraint::Length(7), Constraint::Min(3)].as_ref())
-            .split(master_detail[1]);
-
         // Help
         let help_options = vec![
             ("q", "quit"),
@@ -318,8 +301,29 @@ impl App {
                 acc
             },
         ));
+        // The help text is short. Even with a terminal height of 1 the number would not
+        // overflow.
+        let help_width = help.width() as u16;
+        let required_help_height = help_width.div_ceil(f.area().width);
 
-        let help = Paragraph::new(help);
+        // Layout
+        let content_help = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([Constraint::Min(3), Constraint::Length(required_help_height)].as_ref())
+            .split(f.area());
+
+        let master_detail = Layout::default()
+            .direction(Direction::Horizontal)
+            .constraints([Constraint::Min(50), Constraint::Percentage(70)].as_ref())
+            .split(content_help[0]);
+
+        let job_detail_log = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([Constraint::Length(7), Constraint::Min(3)].as_ref())
+            .split(master_detail[1]);
+
+
+        let help = Paragraph::new(help).wrap(Wrap { trim: true });
         f.render_widget(help, content_help[1]);
 
         // Jobs
@@ -535,7 +539,7 @@ impl App {
                             .style(Style::default().fg(Color::Green)),
                     );
 
-                    let area = centered_lines(75, 3, f.size());
+                    let area = centered_lines(75, 3, f.area());
                     f.render_widget(Clear, area);
                     f.render_widget(dialog, area);
                 }
