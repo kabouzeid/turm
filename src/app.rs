@@ -279,7 +279,7 @@ impl App {
         let content_help = Layout::default()
             .direction(Direction::Vertical)
             .constraints([Constraint::Min(3), Constraint::Length(1)].as_ref())
-            .split(f.size());
+            .split(f.area());
 
         let master_detail = Layout::default()
             .direction(Direction::Horizontal)
@@ -535,7 +535,7 @@ impl App {
                             .style(Style::default().fg(Color::Green)),
                     );
 
-                    let area = centered_lines(75, 3, f.size());
+                    let area = centered_lines(75, 3, f.area());
                     f.render_widget(Clear, area);
                     f.render_widget(dialog, area);
                 }
@@ -650,13 +650,16 @@ fn fit_text(
                 )
             } else {
                 match l.chars().nth(cols) {
-                    Some(_) => { // has more chars than cols
+                    Some(_) => {
+                        // has more chars than cols
                         Either::Right(once(Line::default().spans(vec![
                             Span::raw(l.chars().take(cols.saturating_sub(1)).collect::<String>()),
                             Span::styled("…", Style::default().add_modifier(Modifier::DIM)),
                         ])))
                     }
-                    None => Either::Right(once(Line::raw(l.chars().take(cols).collect::<String>()))),
+                    None => {
+                        Either::Right(once(Line::raw(l.chars().take(cols).collect::<String>())))
+                    }
                 }
             };
             match anchor {
