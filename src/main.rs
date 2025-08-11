@@ -32,6 +32,14 @@ struct Cli {
     #[arg(long, value_name = "SECONDS", default_value_t = 2)]
     file_refresh: u64,
 
+    /// Run slurm commands on a remote host via ssh.
+    #[arg(long)]
+    remote: Option<String>,
+
+    /// Extra options to pass to the ssh command.
+    #[arg(long, value_name = "OPTIONS")]
+    ssh_options: Option<String>,
+
     /// squeue arguments
     #[command(flatten)]
     squeue_args: SqueueArgs,
@@ -93,6 +101,8 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, args: Cli) -> io::Result<()> 
         args.slurm_refresh,
         args.file_refresh,
         args.squeue_args.to_vec(),
+        args.remote,
+        args.ssh_options,
     );
     thread::spawn(move || input_loop(input_tx));
     app.run(terminal)

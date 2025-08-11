@@ -51,12 +51,32 @@ turm completion fish | source
 
 ## How it works
 
-`turm` obtains information about jobs by parsing the output of `squeue`.
+`turm` obtains information about jobs by parsing the output of `squeue`. This can be done either locally or on a remote machine via SSH (see `--remote` and `--ssh-options`).
 The reason for this is that `squeue` is available on all Slurm clusters, and running it periodically is not too expensive for the Slurm controller ( particularly when [filtering by user](https://slurm.schedmd.com/squeue.html#OPT_user)).
 In contrast, Slurm's C API is unstable, and Slurm's REST API is not always available and can be costly for the Slurm controller.
 Another advantage is that we get free support for the exact same CLI flags as `squeue`, which users are already familiar with, for filtering and sorting the jobs.
 
-### Ressource usage
+## Remote SSH
+
+`turm` can be used to manage a remote Slurm cluster via SSH. This is useful when `turm` is not installed on the cluster, or when you want to manage multiple clusters from a single machine.
+
+To use this feature, you need to specify the remote host using the `--remote` command-line option. For example:
+
+```shell
+turm --remote user@my-cluster
+```
+
+You can also specify additional SSH options using the `--ssh-options` command-line option. For example, to use a specific identity file, you can do:
+
+```shell
+turm --remote user@my-cluster --ssh-options "-i ~/.ssh/my-key"
+```
+
+When using the remote SSH feature, `turm` will execute all Slurm commands on the remote host. It will also read the job output files from the remote host.
+
+**Note:** When using the remote SSH feature, it is recommended to set up SSH key-based authentication to avoid having to enter your password every time a command is executed.
+
+### Resource usage
 
 TL;DR: `turm` ≈ `watch -n2 squeue` + `tail -f slurm-log.out`
 

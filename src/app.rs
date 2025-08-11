@@ -56,6 +56,30 @@ pub struct App {
     receiver: Receiver<AppMessage>,
     input_receiver: Receiver<std::io::Result<Event>>,
     output_file_view: OutputFileView,
+    remote: Option<String>,
+    ssh_options: Option<String>,
+    error: Option<String>,
+}
+
+impl App {
+    fn build_command(&self, command: &str, args: &[&str]) -> Command {
+        if let Some(remote) = &self.remote {
+            let mut ssh_args = Vec::new();
+            if let Some(ssh_options) = &self.ssh_options {
+                ssh_args.extend(ssh_options.split_whitespace());
+            }
+            ssh_args.push(remote);
+            ssh_args.push(command);
+            ssh_args.extend_from_slice(args);
+            let mut cmd = Command::new("ssh");
+            cmd.args(ssh_args);
+            cmd
+        } else {
+            let mut cmd = Command::new(command);
+            cmd.args(args);
+            cmd
+        }
+    }
 }
 
 pub struct Job {
@@ -89,6 +113,7 @@ pub enum AppMessage {
     Jobs(Vec<Job>),
     JobOutput(Result<String, FileWatcherError>),
     Key(KeyEvent),
+    Error(String),
 }
 
 impl App {
@@ -97,6 +122,8 @@ impl App {
         slurm_refresh_rate: u64,
         file_refresh_rate: u64,
         squeue_args: Vec<String>,
+        remote: Option<String>,
+        ssh_options: Option<String>,
     ) -> App {
         let (sender, receiver) = unbounded();
         Self {
@@ -107,6 +134,8 @@ impl App {
                 sender.clone(),
                 Duration::from_secs(slurm_refresh_rate),
                 squeue_args,
+                remote.clone(),
+                ssh_options.clone(),
             ),
             job_list_state: {
                 let mut s = ListState::default();
@@ -120,11 +149,16 @@ impl App {
             job_output_watcher: FileWatcherHandle::new(
                 sender.clone(),
                 Duration::from_secs(file_refresh_rate),
+                remote.clone(),
+                ssh_options.clone(),
             ),
             // sender,
             receiver: receiver,
             input_receiver: input_receiver,
             output_file_view: OutputFileView::default(),
+            remote,
+            ssh_options,
+            error: None,
         }
     }
 }
@@ -158,15 +192,17 @@ impl App {
 
     fn handle(&mut self, msg: AppMessage) {
         match msg {
-            AppMessage::Jobs(jobs) => self.jobs = jobs,
+            AppMessage::Jobs(jobs) => {
+                self.jobs = jobs;
+                self.error = None;
+            }
             AppMessage::JobOutput(content) => self.job_output = content,
             AppMessage::Key(key) => {
                 if let Some(dialog) = &self.dialog {
                     match dialog {
                         Dialog::ConfirmCancelJob(id) => match key.code {
                             KeyCode::Enter | KeyCode::Char('y') => {
-                                Command::new("scancel")
-                                    .arg(id)
+                                self.build_command("scancel", &[id])
                                     .stdout(Stdio::null())
                                     .stderr(Stdio::null())
                                     .spawn()
@@ -261,6 +297,9 @@ impl App {
                     };
                 }
             }
+            AppMessage::Error(err) => {
+                self.error = Some(err);
+            }
         }
 
         // update
@@ -338,7 +377,11 @@ impl App {
             .map(|j| j.state_compact.len())
             .max()
             .unwrap_or(0);
-        let jobs: Vec<ListItem> = self
+        let job_list = if let Some(err) = &self.error {
+            List::new(vec![ListItem::new(Text::from(err.as_str()))])
+                .block(Block::default().title("Error").borders(Borders::ALL))
+        } else {
+            let jobs: Vec<ListItem> = self
             .jobs
             .iter()
             .map(|j| {
@@ -376,7 +419,7 @@ impl App {
                 ]))
             })
             .collect();
-        let job_list = List::new(jobs)
+            List::new(jobs)
             .block(
                 Block::default()
                     .title(format!("Jobs ({})", self.jobs.len()))
@@ -389,7 +432,8 @@ impl App {
                         }
                     }),
             )
-            .highlight_style(Style::default().bg(Color::Green).fg(Color::Black));
+            .highlight_style(Style::default().bg(Color::Green).fg(Color::Black))
+        };
         f.render_stateful_widget(job_list, master_detail[0], &mut self.job_list_state);
 
         // Job details
