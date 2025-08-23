@@ -65,3 +65,7 @@ The job queue is updated every two seconds by running `squeue`.
 When there are many jobs in the queue, it is advisable to specify a single user to reduce the load on the Slurm controller (see [squeue --user](https://slurm.schedmd.com/squeue.html#OPT_user)).
 `turm` updates the currently displayed log file on every inotify modify notification, and it only reads the newly appended lines after the initial read.
 However, since inotify notifications are not supported for remote file systems, such as NFS, `turm` also polls the file for newly appended bytes every two seconds.
+
+## Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=kabouzeid/turm&type=Date)](https://www.star-history.com/#kabouzeid/turm&Date)
