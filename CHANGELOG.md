@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.8.0](https://github.com/kabouzeid/turm/compare/v0.7.3...v0.8.0) (2025-08-24)
+
+
+### Features
+
+* auto-refresh non-existing file paths until they are created ([3a3acc6](https://github.com/kabouzeid/turm/commit/3a3acc6480faf58dc93de31d031bd2a90db117e8))
+
 ## [0.7.3](https://github.com/kabouzeid/turm/compare/v0.7.2...v0.7.3) (2024-07-28)
 
 
