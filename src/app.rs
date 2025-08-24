@@ -413,6 +413,11 @@ impl App {
                     Span::raw("")
                 },
             ]);
+            let name = Line::from(vec![
+                Span::styled("Name   ", Style::default().fg(Color::Yellow)),
+                Span::raw(" "),
+                Span::raw(&j.name),
+            ]);
 
             let command = Line::from(vec![
                 Span::styled("Command", Style::default().fg(Color::Yellow)),
@@ -447,7 +452,7 @@ impl App {
                 ),
             ]);
 
-            Text::from(vec![state, command, nodes, tres, stdout])
+            Text::from(vec![state, name, command, nodes, tres, stdout])
         });
         let job_detail = Paragraph::new(job_detail.unwrap_or_default())
             .block(Block::default().title("Details").borders(Borders::ALL));
