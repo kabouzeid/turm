@@ -28,6 +28,7 @@ struct FileWatcher {
     app: Sender<AppMessage>,
     receiver: Receiver<FileWatcherMessage>,
     file_path: Option<PathBuf>,
+    watching: bool, // Whether notify watch was successfully started for file_path
     interval: Duration,
 }
 pub enum FileWatcherMessage {
@@ -40,14 +41,12 @@ pub struct FileWatcherHandle {
 }
 
 pub enum FileWatcherError {
-    Watcher(notify::Error),
     File(io::Error),
 }
 
 impl fmt::Display for FileWatcherError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            FileWatcherError::Watcher(e) => write!(f, "Watcher error: {}", e),
             FileWatcherError::File(e) => write!(f, "Read error: {}", e),
         }
     }
@@ -60,23 +59,21 @@ impl FileWatcher {
         interval: Duration,
     ) -> Self {
         FileWatcher {
-            app: app,
-            receiver: receiver,
+            app,
+            receiver,
             file_path: None,
-            interval: interval,
+            watching: false,
+            interval,
         }
     }
 
     fn run(&mut self) -> Result<(), RecvError> {
-        let (watch_sender, watch_receiver) = unbounded();
+        let (watch_sender, watch_receiver) = unbounded::<()>();
         let mut watcher = notify::recommended_watcher(move |res: notify::Result<notify::Event>| {
             let event = res.unwrap();
-            match event.kind {
-                notify::EventKind::Modify(ModifyKind::Data(_)) => {
-                    watch_sender.send(event.paths).unwrap();
-                }
-                _ => {}
-            };
+            if let notify::EventKind::Modify(ModifyKind::Data(_)) = event.kind {
+                watch_sender.send(()).unwrap();
+            }
         })
         .unwrap();
 
@@ -90,21 +87,23 @@ impl FileWatcher {
                             (_content_sender, _content_receiver) = unbounded();
                             (_watch_sender, _watch_receiver) = unbounded::<()>();
 
-                            if let Some(p) = &self.file_path {
-                                watcher.unwatch(p).expect(format!("Failed to unwatch {:?}", p).as_str());
-                                self.file_path = None;
+                            if self.watching {
+                                let p = self.file_path.as_ref().expect("Inconsistent state");
+                                watcher.unwatch(p).expect(&format!("Failed to unwatch {:?}", p));
                             }
+                            self.file_path = None;
+                            self.watching = false;
 
                             if let Some(p) = file_path {
-                                let res = watcher.watch(Path::new(&p), RecursiveMode::NonRecursive);
-                                match res {
-                                    Ok(_) => {
-                                        self.file_path = Some(p.clone());
-                                        let i = self.interval.clone();
-                                        thread::spawn(move || FileReader::new(_content_sender, _watch_receiver, p, i).run());
-                                    },
-                                    Err(e) => self.app.send(AppMessage::JobOutput(Err(FileWatcherError::Watcher(e)))).unwrap()
-                                };
+                                self.file_path = Some(p.clone());
+
+                                let interval = self.interval;
+                                thread::spawn({
+                                    let p = p.clone();
+                                    move || FileReader::new(_content_sender, _watch_receiver, p, interval).run()
+                                });
+
+                                self.watching = watcher.watch(Path::new(&p), RecursiveMode::NonRecursive).is_ok();
                             } else {
                                 _content_sender.send(Ok("".to_string())).unwrap();
                             }
@@ -113,7 +112,16 @@ impl FileWatcher {
                 }
                 recv(watch_receiver) -> _ => { _watch_sender.send(()).unwrap(); }
                 recv(_content_receiver) -> msg => {
-                    self.app.send(AppMessage::JobOutput(msg.unwrap().map_err(|e| FileWatcherError::File(e)))).unwrap();
+                    let res = msg.unwrap();
+                    // If we don't have a file watch yet but the file now reads OK, try enabling watch
+                    if !self.watching {
+                        if let (Ok(_), Some(p)) = (&res, &self.file_path) {
+                            self.watching = watcher.watch(Path::new(p), RecursiveMode::NonRecursive).is_ok();
+                        }
+                    }
+                    self.app
+                        .send(AppMessage::JobOutput(res.map_err(|e| FileWatcherError::File(e))))
+                        .unwrap();
                 }
             }
         }
