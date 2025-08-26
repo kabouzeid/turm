@@ -109,11 +109,7 @@ impl App {
                 Duration::from_secs(slurm_refresh_rate),
                 squeue_args,
             ),
-            job_list_state: {
-                let mut s = ListState::default();
-                s.select(Some(0));
-                s
-            },
+            job_list_state: ListState::default(),
             job_output: Ok("".to_string()),
             job_output_anchor: ScrollAnchor::Bottom,
             job_output_offset: 0,
@@ -391,6 +387,9 @@ impl App {
                     }),
             )
             .highlight_style(Style::default().bg(Color::Green).fg(Color::Black));
+        if self.job_list_state.selected().is_none() {
+            self.job_list_state.select_first();
+        }
         f.render_stateful_widget(job_list, master_detail[0], &mut self.job_list_state);
 
         // Job details
@@ -700,30 +699,10 @@ impl App {
     }
 
     fn select_next_job(&mut self) {
-        let i = match self.job_list_state.selected() {
-            Some(i) => {
-                if i >= self.jobs.len() - 1 {
-                    self.jobs.len() - 1
-                } else {
-                    i + 1
-                }
-            }
-            None => 0,
-        };
-        self.job_list_state.select(Some(i));
+        self.job_list_state.select_next();
     }
 
     fn select_previous_job(&mut self) {
-        let i = match self.job_list_state.selected() {
-            Some(i) => {
-                if i == 0 {
-                    0
-                } else {
-                    i - 1
-                }
-            }
-            None => 0,
-        };
-        self.job_list_state.select(Some(i));
+        self.job_list_state.select_previous();
     }
 }
