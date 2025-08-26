@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.9.0](https://github.com/kabouzeid/turm/compare/v0.8.0...v0.9.0) (2025-08-26)
+
+
+### Features
+
+* auto-select first job on start ([c39613c](https://github.com/kabouzeid/turm/commit/c39613c32ca18625807a56081655f14533d63d32))
+* show estimated start time for pending jobs ([6ce5f01](https://github.com/kabouzeid/turm/commit/6ce5f01730d400f1a9be0d97dd17100728ce72d0))
+
+
+### Bug Fixes
+
+* cargo warning ([8979926](https://github.com/kabouzeid/turm/commit/8979926149d07b7e78e2839d767679efb4d52c2b))
+
 ## [0.8.0](https://github.com/kabouzeid/turm/compare/v0.7.3...v0.8.0) (2025-08-24)
 
 
