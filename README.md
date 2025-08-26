@@ -1,7 +1,7 @@
 # turm
 
-![PyPI - Version](https://img.shields.io/pypi/v/turm)
-![Crates.io Version](https://img.shields.io/crates/v/turm)
+[![image](https://img.shields.io/pypi/v/turm.svg)](https://pypi.python.org/pypi/turm)
+[![image](https://img.shields.io/crates/v/turm.svg)](https://crates.io/crates/turm)
 
 A text-based user interface (TUI) for the [Slurm Workload Manager](https://slurm.schedmd.com/), which provides a convenient way to manage your cluster jobs.
 
