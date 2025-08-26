@@ -32,6 +32,7 @@ impl JobWatcher {
             "state",
             "username",
             "timeused",
+            "StartTime",
             "tres-alloc",
             "partition",
             "nodelist",
@@ -73,19 +74,20 @@ impl JobWatcher {
                     let state = parts[2];
                     let user = parts[3];
                     let time = parts[4];
-                    let tres = parts[5];
-                    let partition = parts[6];
-                    let nodelist = parts[7];
-                    let stdout = parts[8];
-                    let stderr = parts[9];
-                    let command = parts[10];
-                    let state_compact = parts[11];
-                    let reason = parts[12];
+                    let start_time = parts[5];
+                    let tres = parts[6];
+                    let partition = parts[7];
+                    let nodelist = parts[8];
+                    let stdout = parts[9];
+                    let stderr = parts[10];
+                    let command = parts[11];
+                    let state_compact = parts[12];
+                    let reason = parts[13];
 
-                    let array_job_id = parts[13];
-                    let array_task_id = parts[14];
-                    let node_list = parts[15];
-                    let working_dir = parts[16];
+                    let array_job_id = parts[14];
+                    let array_task_id = parts[15];
+                    let node_list = parts[16];
+                    let working_dir = parts[17];
 
                     Some(Job {
                         job_id: id.to_owned(),
@@ -104,6 +106,7 @@ impl JobWatcher {
                         },
                         user: user.to_owned(),
                         time: time.to_owned(),
+                        start_time: start_time.to_owned(),
                         tres: tres.to_owned(),
                         partition: partition.to_owned(),
                         nodelist: nodelist.to_owned(),

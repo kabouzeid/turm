@@ -68,6 +68,7 @@ pub struct Job {
     pub reason: Option<String>,
     pub user: String,
     pub time: String,
+    pub start_time: String,
     pub tres: String,
     pub partition: String,
     pub nodelist: String,
@@ -400,19 +401,24 @@ impl App {
             .and_then(|i| self.jobs.get(i));
 
         let job_detail = job_detail.map(|j| {
-            let state = Line::from(vec![
+            let mut state_spans = vec![
                 Span::styled("State  ", Style::default().fg(Color::Yellow)),
                 Span::raw(" "),
                 Span::raw(&j.state),
-                if let Some(s) = j.reason.as_deref() {
-                    Span::styled(
-                        format!(" ({s})"),
-                        Style::default().add_modifier(Modifier::DIM),
-                    )
-                } else {
-                    Span::raw("")
-                },
-            ]);
+            ];
+            if j.state == "PENDING" {
+                state_spans.extend([
+                    Span::styled(" Start ", Style::default().fg(Color::Yellow)),
+                    Span::raw(&j.start_time),
+                ]);
+            }
+            if let Some(s) = j.reason.as_deref() {
+                state_spans.extend([
+                    Span::styled(" Reason ", Style::default().fg(Color::Yellow)),
+                    Span::raw(s),
+                ]);
+            }
+            let state = Line::from(state_spans);
 
             let command = Line::from(vec![
                 Span::styled("Command", Style::default().fg(Color::Yellow)),
