@@ -544,6 +544,8 @@ impl App {
             .divider(" - ")
             .padding("", "");
 
+        // FIXME: By doing this the job array is disappearing...
+        // Needs to be saved somehow or it will re-render everytime
         f.render_widget(tabs, tabs_content[0]);
         match self.selected_tab {
             SelectedTab::Jobs => {
