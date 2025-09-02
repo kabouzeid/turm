@@ -7,6 +7,7 @@ use std::{cmp::min, iter::once, path::PathBuf, process::Command};
 use std::{process::Stdio, time::Duration};
 
 use crate::file_watcher::{FileWatcherError, FileWatcherHandle};
+use crate::job_acct::JobAcctWatcherHandle;
 use crate::job_watcher::JobWatcherHandle;
 
 use crossterm::event::{Event, KeyCode, KeyEvent};
@@ -15,10 +16,12 @@ use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
     text::{Line, Span, Text},
-    widgets::{Block, Borders, Clear, List, ListItem, ListState, Paragraph, Wrap},
+    widgets::{Block, Borders, Clear, List, ListItem, ListState, Paragraph, Tabs, Wrap},
     Frame, Terminal,
 };
 use std::io;
+use strum::IntoEnumIterator;
+use strum_macros::{Display, EnumIter, FromRepr};
 
 pub enum Focus {
     Jobs,
@@ -41,9 +44,36 @@ pub enum OutputFileView {
     Stderr,
 }
 
+#[derive(Default, Clone, Copy, Display, FromRepr, EnumIter)]
+pub enum SelectedTab {
+    #[default]
+    #[strum(to_string = "Jobs")]
+    Jobs,
+    #[strum(to_string = "Sacct")]
+    Sacct,
+}
+
+impl SelectedTab {
+    /// Get the previous tab, if there is no previous tab return the current tab.
+    fn previous(self) -> Self {
+        let current_index: usize = self as usize;
+        let previous_index = current_index.saturating_sub(1);
+        Self::from_repr(previous_index).unwrap_or(self)
+    }
+
+    /// Get the next tab, if there is no next tab return the current tab.
+    fn next(self) -> Self {
+        let current_index = self as usize;
+        let next_index = current_index.saturating_add(1);
+        Self::from_repr(next_index).unwrap_or(self)
+    }
+}
+
 pub struct App {
     focus: Focus,
     dialog: Option<Dialog>,
+    selected_tab: SelectedTab,
+
     jobs: Vec<Job>,
     job_list_state: ListState,
     job_output: Result<String, FileWatcherError>,
@@ -52,6 +82,11 @@ pub struct App {
     job_output_wrap: bool,
     _job_watcher: JobWatcherHandle,
     job_output_watcher: FileWatcherHandle,
+
+    sacct_jobs: Vec<Job>,
+    sacct_job_list_state: ListState,
+    _job_acct_watcher: JobAcctWatcherHandle,
+
     // sender: Sender<AppMessage>,
     receiver: Receiver<AppMessage>,
     input_receiver: Receiver<std::io::Result<Event>>,
@@ -102,11 +137,12 @@ impl App {
         Self {
             focus: Focus::Jobs,
             dialog: None,
+            selected_tab: SelectedTab::Jobs,
             jobs: Vec::new(),
             _job_watcher: JobWatcherHandle::new(
                 sender.clone(),
                 Duration::from_secs(slurm_refresh_rate),
-                squeue_args,
+                squeue_args.clone(),
             ),
             job_list_state: {
                 let mut s = ListState::default();
@@ -121,6 +157,19 @@ impl App {
                 sender.clone(),
                 Duration::from_secs(file_refresh_rate),
             ),
+
+            sacct_jobs: Vec::new(),
+            _job_acct_watcher: JobAcctWatcherHandle::new(
+                sender.clone(),
+                Duration::from_secs(slurm_refresh_rate),
+                squeue_args,
+            ),
+            sacct_job_list_state: {
+                let mut s = ListState::default();
+                s.select(Some(0));
+                s
+            },
+
             // sender,
             receiver: receiver,
             input_receiver: input_receiver,
@@ -257,6 +306,8 @@ impl App {
                         KeyCode::Char('w') => {
                             self.job_output_wrap = !self.job_output_wrap;
                         }
+                        KeyCode::Char(']') => self.next_tab(),
+                        KeyCode::Char('[') => self.previous_tab(),
                         _ => {}
                     };
                 }
@@ -285,6 +336,11 @@ impl App {
             .direction(Direction::Horizontal)
             .constraints([Constraint::Min(50), Constraint::Percentage(70)].as_ref())
             .split(content_help[0]);
+
+        let tabs_content = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([Constraint::Length(3), Constraint::Min(1)].as_ref())
+            .split(master_detail[0]);
 
         let job_detail_log = Layout::default()
             .direction(Direction::Vertical)
@@ -390,7 +446,117 @@ impl App {
                     }),
             )
             .highlight_style(Style::default().bg(Color::Green).fg(Color::Black));
-        f.render_stateful_widget(job_list, master_detail[0], &mut self.job_list_state);
+
+        // Sacct Jobs
+        let max_id_len = self
+            .sacct_jobs
+            .iter()
+            .map(|j| j.id().len())
+            .max()
+            .unwrap_or(0);
+        let max_user_len = self
+            .sacct_jobs
+            .iter()
+            .map(|j| j.user.len())
+            .max()
+            .unwrap_or(0);
+        let max_partition_len = self
+            .sacct_jobs
+            .iter()
+            .map(|j| j.partition.len())
+            .max()
+            .unwrap_or(0);
+        let max_time_len = self
+            .sacct_jobs
+            .iter()
+            .map(|j| j.time.len())
+            .max()
+            .unwrap_or(0);
+        let max_state_compact_len = self
+            .sacct_jobs
+            .iter()
+            .map(|j| j.state_compact.len())
+            .max()
+            .unwrap_or(0);
+        let old_jobs: Vec<ListItem> = self
+            .sacct_jobs
+            .iter()
+            .map(|j| {
+                ListItem::new(Line::from(vec![
+                    Span::styled(
+                        format!(
+                            "{:<max$.max$}",
+                            j.state_compact,
+                            max = max_state_compact_len
+                        ),
+                        Style::default(),
+                    ),
+                    Span::raw(" "),
+                    Span::styled(
+                        format!("{:<max$.max$}", j.id(), max = max_id_len),
+                        Style::default().fg(Color::Yellow),
+                    ),
+                    Span::raw(" "),
+                    Span::styled(
+                        format!("{:<max$.max$}", j.partition, max = max_partition_len),
+                        Style::default().fg(Color::Blue),
+                    ),
+                    Span::raw(" "),
+                    Span::styled(
+                        format!("{:<max$.max$}", j.user, max = max_user_len),
+                        Style::default().fg(Color::Green),
+                    ),
+                    Span::raw(" "),
+                    Span::styled(
+                        format!("{:>max$.max$}", j.time, max = max_time_len),
+                        Style::default().fg(Color::Red),
+                    ),
+                    Span::raw(" "),
+                    Span::raw(&j.name),
+                ]))
+            })
+            .collect();
+
+        // TODO: Change state here to have tabs instead
+        let past_jobs_list = List::new(old_jobs)
+            .block(
+                Block::default()
+                    .title(format!("Sacct ({})", self.sacct_jobs.len()))
+                    .borders(Borders::ALL)
+                    .border_style(if self.dialog.is_some() {
+                        Style::default()
+                    } else {
+                        match self.focus {
+                            Focus::Jobs => Style::default().fg(Color::Green),
+                        }
+                    }),
+            )
+            .highlight_style(Style::default().bg(Color::Green).fg(Color::Black));
+
+        // Enum iterator
+        let titles = SelectedTab::iter().map(|x| x.to_string());
+        let selected_tab_index = self.selected_tab as usize;
+
+        let tabs = Tabs::new(titles)
+            .block(Block::bordered().title("Tabs"))
+            .highlight_style(Style::default().fg(Color::Green))
+            .select(selected_tab_index)
+            .divider(" - ")
+            .padding("", "");
+
+        f.render_widget(tabs, tabs_content[0]);
+        match self.selected_tab {
+            SelectedTab::Jobs => {
+                f.render_stateful_widget(job_list, tabs_content[1], &mut self.job_list_state);
+            }
+            SelectedTab::Sacct => {
+                f.render_stateful_widget(
+                    past_jobs_list,
+                    tabs_content[1],
+                    &mut self.sacct_job_list_state,
+                );
+            }
+        }
 
         // Job details
 
@@ -696,6 +862,14 @@ impl App {
         match self.focus {
             Focus::Jobs => self.focus = Focus::Jobs,
         }
+    }
+
+    fn next_tab(&mut self) {
+        self.selected_tab = self.selected_tab.next();
+    }
+
+    fn previous_tab(&mut self) {
+        self.selected_tab = self.selected_tab.previous();
     }
 
     fn select_next_job(&mut self) {

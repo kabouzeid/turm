@@ -1,5 +1,6 @@
 mod app;
 mod file_watcher;
+mod job_acct;
 mod job_watcher;
 mod squeue_args;
 
