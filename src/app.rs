@@ -15,7 +15,7 @@ use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
     text::{Line, Span, Text},
-    widgets::{Block, Borders, Clear, List, ListItem, ListState, Paragraph, Wrap},
+    widgets::{Block, BorderType, Borders, Clear, List, ListItem, ListState, Paragraph, Wrap},
     Frame, Terminal,
 };
 use std::io;
@@ -376,8 +376,9 @@ impl App {
         let job_list = List::new(jobs)
             .block(
                 Block::default()
-                    .title(format!("Jobs ({})", self.jobs.len()))
+                    .title(format!("─Jobs ({})", self.jobs.len()))
                     .borders(Borders::ALL)
+                    .border_type(BorderType::Rounded)
                     .border_style(if self.dialog.is_some() {
                         Style::default()
                     } else {
@@ -454,13 +455,18 @@ impl App {
 
             Text::from(vec![state, command, nodes, tres, stdout])
         });
-        let job_detail = Paragraph::new(job_detail.unwrap_or_default())
-            .block(Block::default().title("Details").borders(Borders::ALL));
+        let job_detail = Paragraph::new(job_detail.unwrap_or_default()).block(
+            Block::default()
+                .title("─Details")
+                .borders(Borders::ALL)
+                .border_type(BorderType::Rounded),
+        );
         f.render_widget(job_detail, job_detail_log[0]);
 
         // Log
         let log_area = job_detail_log[1];
         let log_title = Line::from(vec![
+            Span::raw("─"),
             Span::raw(match self.output_file_view {
                 OutputFileView::Stdout => "stdout",
                 OutputFileView::Stderr => "stderr",
@@ -476,6 +482,7 @@ impl App {
             ),
         ]);
         let log_block = Block::default().title(log_title).borders(Borders::ALL);
+        let log_block = log_block.border_type(BorderType::Rounded);
 
         // let job_log = self.job_stdout.as_deref().map(|s| {
         //     string_for_paragraph(
@@ -535,8 +542,9 @@ impl App {
                     .wrap(Wrap { trim: true })
                     .block(
                         Block::default()
-                            .title("Confirm")
+                            .title("─Confirm")
                             .borders(Borders::ALL)
+                            .border_type(BorderType::Rounded)
                             .style(Style::default().fg(Color::Green)),
                     );
 
