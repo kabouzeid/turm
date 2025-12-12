@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.10.0](https://github.com/kabouzeid/turm/compare/v0.9.0...v0.10.0) (2025-12-12)
+
+
+### Features
+
+* rounded corners ([a689259](https://github.com/kabouzeid/turm/commit/a6892592723c50d2d7ce48b9379b497a573c3a68))
+
 ## [0.9.0](https://github.com/kabouzeid/turm/compare/v0.8.0...v0.9.0) (2025-08-26)
 
 
