@@ -15,6 +15,8 @@ use notify::{event::ModifyKind, RecursiveMode, Watcher};
 
 use crate::app::AppMessage;
 
+const MAX_LOG_BYTES: usize = 8 * 1024 * 1024;
+
 struct FileReader {
     content_sender: Sender<io::Result<String>>,
     receiver: Receiver<()>,
@@ -160,9 +162,30 @@ impl FileReader {
 
     fn update(&mut self) -> Result<(), SendError<io::Result<String>>> {
         let s = File::open(&self.file_path).and_then(|mut f| {
+            let len = f.metadata()?.len();
+            if len < self.pos {
+                // Handle case where file shrank since last read
+                self.pos = 0;
+                self.content.clear();
+            }
+
             // avoid reading the whole file every time
             self.pos = f.seek(io::SeekFrom::Start(self.pos))?;
-            self.pos += f.read_to_string(&mut self.content)? as u64;
+            let mut buf = Vec::new();
+            let read = f.read_to_end(&mut buf)?;
+            self.pos += read as u64;
+            if !buf.is_empty() {
+                self.content.push_str(&String::from_utf8_lossy(&buf));
+            }
+
+            if self.content.len() > MAX_LOG_BYTES {
+                // Avoid storing entire log in memory (useful for big logs)
+                let mut cut = self.content.len() - MAX_LOG_BYTES;
+                while !self.content.is_char_boundary(cut) {
+                    cut += 1;
+                }
+                self.content.drain(..cut);
+            }
             Ok(self.content.clone())
         });
         // let s = fs::read_to_string(&self.file_path); // alternative: always read the whole file
