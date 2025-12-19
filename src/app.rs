@@ -155,7 +155,33 @@ impl App {
 
     fn handle(&mut self, msg: AppMessage) {
         match msg {
-            AppMessage::Jobs(jobs) => self.jobs = jobs,
+            AppMessage::Jobs(jobs) => {
+                // On refresh: keep the same job selected if it still exists
+                // If job disappeared, clamp to a valid index.
+                // If the list is empty, clear selection.
+                // If selection is clear but jobs exist, pick the first one (code assumes this)
+                let selected_id = self
+                    .job_list_state
+                    .selected()
+                    .and_then(|i| self.jobs.get(i))
+                    .map(|j| j.id());
+                let old_index = self.job_list_state.selected();
+
+                self.jobs = jobs;
+
+                if self.jobs.is_empty() {
+                    self.job_list_state.select(None);
+                } else if let Some(id) = selected_id {
+                    if let Some(new_index) = self.jobs.iter().position(|j| j.id() == id) {
+                        self.job_list_state.select(Some(new_index));
+                    } else {
+                        let fallback = old_index.unwrap_or(0).min(self.jobs.len() - 1);
+                        self.job_list_state.select(Some(fallback));
+                    }
+                } else {
+                    self.job_list_state.select_first();
+                }
+            }
             AppMessage::JobOutput(content) => self.job_output = content,
             AppMessage::Key(key) => {
                 if let Some(dialog) = &self.dialog {
@@ -390,7 +416,7 @@ impl App {
                     }),
             )
             .highlight_style(Style::default().bg(Color::Green).fg(Color::Black));
-        if self.job_list_state.selected().is_none() {
+        if self.job_list_state.selected().is_none() && !self.jobs.is_empty() {
             self.job_list_state.select_first();
         }
         f.render_stateful_widget(job_list, master_detail[0], &mut self.job_list_state);
