@@ -120,7 +120,7 @@ impl FileWatcher {
                         }
                     }
                     self.app
-                        .send(AppMessage::JobOutput(res.map_err(|e| FileWatcherError::File(e))))
+                        .send(AppMessage::JobOutput(res.map_err(FileWatcherError::File)))
                         .unwrap();
                 }
             }
@@ -136,10 +136,10 @@ impl FileReader {
         interval: Duration,
     ) -> Self {
         FileReader {
-            content_sender: content_sender,
-            receiver: receiver,
-            file_path: file_path,
-            interval: interval,
+            content_sender,
+            receiver,
+            file_path,
+            interval,
             content: "".to_string(),
             pos: 0,
         }
