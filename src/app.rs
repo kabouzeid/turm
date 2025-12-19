@@ -3,7 +3,7 @@ use crossbeam::{
     select,
 };
 use itertools::Either;
-use std::{cmp::min, iter::once, path::PathBuf, process::Command};
+use std::{cmp::min, iter::once, path::PathBuf, process::Command, thread};
 use std::{process::Stdio, time::Duration};
 
 use crate::file_watcher::{FileWatcherError, FileWatcherHandle};
@@ -162,12 +162,14 @@ impl App {
                     match dialog {
                         Dialog::ConfirmCancelJob(id) => match key.code {
                             KeyCode::Enter | KeyCode::Char('y') => {
-                                Command::new("scancel")
-                                    .arg(id)
-                                    .stdout(Stdio::null())
-                                    .stderr(Stdio::null())
-                                    .spawn()
-                                    .expect("failed to execute scancel");
+                                let id = id.clone();
+                                thread::spawn(move || {
+                                    let _ = Command::new("scancel")
+                                        .arg(id)
+                                        .stdout(Stdio::null())
+                                        .stderr(Stdio::null())
+                                        .status();
+                                });
                                 self.dialog = None;
                             }
                             KeyCode::Esc => {
