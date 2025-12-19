@@ -119,8 +119,8 @@ impl App {
                 Duration::from_secs(file_refresh_rate),
             ),
             // sender,
-            receiver: receiver,
-            input_receiver: input_receiver,
+            receiver,
+            input_receiver,
             output_file_view: OutputFileView::default(),
         }
     }
@@ -564,7 +564,7 @@ fn chunked_string(s: &str, first_chunk_size: usize, chunk_size: usize) -> Vec<&s
         .enumerate()
         .filter(|&(i, _)| {
             if i > (first_chunk_size) {
-                chunk_size > 0 && (i - first_chunk_size) % chunk_size == 0
+                chunk_size > 0 && (i - first_chunk_size).is_multiple_of(chunk_size)
             } else {
                 i == 0 || i == first_chunk_size
             }
@@ -631,7 +631,7 @@ fn fit_text(
     offset: usize,
     wrap: bool,
 ) -> Text<'_> {
-    let s = s.rsplit_once(&['\r', '\n']).map_or(s, |(p, _)| p); // skip everything after last line delimiter
+    let s = s.rsplit_once(['\r', '\n']).map_or(s, |(p, _)| p); // skip everything after last line delimiter
     let l = s.lines().flat_map(|l| l.split('\r')); // bandaid for term escape codes
     let iter = match anchor {
         ScrollAnchor::Top => Either::Left(l),
