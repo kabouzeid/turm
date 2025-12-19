@@ -66,24 +66,31 @@ fn main() -> Result<(), io::Error> {
     execute!(stdout, EnterAlternateScreen, EnableMouseCapture)?;
     let backend = CrosstermBackend::new(stdout);
     let mut terminal = Terminal::new(backend)?;
-    run_app(&mut terminal, args)?;
 
-    // restore terminal
-    disable_raw_mode()?;
-    execute!(
-        terminal.backend_mut(),
-        LeaveAlternateScreen,
-        DisableMouseCapture
-    )?;
-    terminal.show_cursor()?;
+    let res = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        run_app(&mut terminal, args)
+    }));
 
-    Ok(())
+    // restore terminal (surface error if app succeeded)
+    let cleanup = (|| {
+        disable_raw_mode()?;
+        execute!(
+            terminal.backend_mut(),
+            LeaveAlternateScreen,
+            DisableMouseCapture
+        )?;
+        terminal.show_cursor()?;
+        Ok(())
+    })();
+
+    match res {
+        Ok(r) => r.and(cleanup),
+        Err(p) => std::panic::resume_unwind(p),
+    }
 }
 
 fn input_loop(tx: Sender<std::io::Result<Event>>) {
-    loop {
-        tx.send(event::read()).unwrap();
-    }
+    while tx.send(event::read()).is_ok() {}
 }
 
 fn run_app<B: Backend>(terminal: &mut Terminal<B>, args: Cli) -> io::Result<()> {
