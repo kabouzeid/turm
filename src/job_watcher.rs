@@ -139,6 +139,7 @@ impl JobWatcher {
         }
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn resolve_path(
         path: &str,
         array_master: &str,
