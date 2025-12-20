@@ -72,9 +72,10 @@ impl FileWatcher {
     fn run(&mut self) -> Result<(), RecvError> {
         let (watch_sender, watch_receiver) = unbounded::<()>();
         let mut watcher = notify::recommended_watcher(move |res: notify::Result<notify::Event>| {
-            let event = res.unwrap();
-            if let notify::EventKind::Modify(ModifyKind::Data(_)) = event.kind {
-                watch_sender.send(()).unwrap();
+            if let Ok(event) = res {
+                if let notify::EventKind::Modify(ModifyKind::Data(_)) = event.kind {
+                    let _ = watch_sender.send(());
+                }
             }
         })
         .unwrap();
@@ -91,7 +92,9 @@ impl FileWatcher {
 
                             if self.watching {
                                 let p = self.file_path.as_ref().expect("Inconsistent state");
-                                watcher.unwatch(p).expect(&format!("Failed to unwatch {:?}", p));
+                                watcher
+                                    .unwatch(p)
+                                    .unwrap_or_else(|_| panic!("Failed to unwatch {:?}", p));
                             }
                             self.file_path = None;
                             self.watching = false;
