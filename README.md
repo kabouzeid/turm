@@ -52,6 +52,19 @@ In your `config.fish` or in a separate `completions/turm.fish` file, add the fol
 turm completion fish | source
 ```
 
+## Usage
+
+Run `turm` in your terminal. By default, it shows all jobs in the queue.
+```shell
+turm
+```
+
+You can filter the jobs using the same options as `squeue`. For example, to show only your own jobs, sorted by descending job ID, including all job states (i.e., including completed and failed jobs):
+
+```shell
+turm --sort=-id --me --states=ALL
+```
+
 ## How it works
 
 `turm` obtains information about jobs by parsing the output of `squeue`.
