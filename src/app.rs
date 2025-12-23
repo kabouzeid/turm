@@ -189,13 +189,12 @@ impl App {
                         Dialog::ConfirmCancelJob(id) => match key.code {
                             KeyCode::Enter | KeyCode::Char('y') => {
                                 let id = id.clone();
-                                thread::spawn(move || {
-                                    let _ = Command::new("scancel")
-                                        .arg(id)
-                                        .stdout(Stdio::null())
-                                        .stderr(Stdio::null())
-                                        .status();
-                                });
+                                Command::new("scancel")
+                                    .arg(id)
+                                    .stdout(Stdio::null())
+                                    .stderr(Stdio::null())
+                                    .spawn()
+                                    .expect("failed to execute scancel");
                                 self.dialog = None;
                             }
                             KeyCode::Esc => {
