@@ -7,7 +7,10 @@ A text-based user interface (TUI) for the [Slurm Workload Manager](https://slurm
 
 <img alt="turm demo" src="https://user-images.githubusercontent.com/7303830/228503846-3e5abc04-2c1e-422e-844b-d12ca097403a.gif" width="100%" />
 
-`turm` accepts the same options as `squeue` (see [man squeue](https://slurm.schedmd.com/squeue.html#SECTION_OPTIONS)). Use `turm --help` to get a list of all available options.
+`turm` accepts the same options as `squeue` (see [man squeue](https://slurm.schedmd.com/squeue.html#SECTION_OPTIONS)). Use `turm --help` to get a list of all available options. For example, to show only your own jobs, sorted by descending job ID, including all job states (i.e., including completed and failed jobs):
+```shell
+turm --sort=-id --me --states=ALL
+```
 
 ## Installation
 
@@ -50,19 +53,6 @@ eval "$(turm completion zsh)"
 In your `config.fish` or in a separate `completions/turm.fish` file, add the following line:
 ```fish
 turm completion fish | source
-```
-
-## Usage
-
-Run `turm` in your terminal. By default, it shows all jobs in the queue.
-```shell
-turm
-```
-
-You can filter the jobs using the same options as `squeue`. For example, to show only your own jobs, sorted by descending job ID, including all job states (i.e., including completed and failed jobs):
-
-```shell
-turm --sort=-id --me --states=ALL
 ```
 
 ## How it works
