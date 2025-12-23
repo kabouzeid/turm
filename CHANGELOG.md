@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.11.0](https://github.com/kabouzeid/turm/compare/v0.10.0...v0.11.0) (2025-12-23)
+
+
+### Features
+
+* add g and G bindings to jump to first/last job ([2b92a8e](https://github.com/kabouzeid/turm/commit/2b92a8edb426dbec2c52e26127d8516a2e116dd2))
+* scroll job list with ctrl+d/u ([3fe52ea](https://github.com/kabouzeid/turm/commit/3fe52eacc9b8745456e382281b1c58c1d21792e2))
+
+
+### Bug Fixes
+
+* clean up jobs refresh ([cc7b29b](https://github.com/kabouzeid/turm/commit/cc7b29b2f17c13b182c2171911da756c5bfc549b))
+* clippy ([8cc6246](https://github.com/kabouzeid/turm/commit/8cc624612948bc0e57a5a14d73ac0f78c6040bdf))
+* clippy ([6644393](https://github.com/kabouzeid/turm/commit/6644393ae45c50438e6315e6efd5676ad0680786))
+* format ([bb28b2b](https://github.com/kabouzeid/turm/commit/bb28b2be8df5e53803a16847c1ce9c59f4458399))
+* job list height ([9fdd3d7](https://github.com/kabouzeid/turm/commit/9fdd3d736d5ef65a72bf33da0103e952303dd574))
+* preserve job selection across refresh ([e54ac01](https://github.com/kabouzeid/turm/commit/e54ac016bd844b545d53bccf1480a38214a690ed))
+* remove unnecessary job_list_state modification in ui func ([50a780c](https://github.com/kabouzeid/turm/commit/50a780c967b41459dcb81702a2c28c0065e4d44d))
+* reset terminal on panic ([bc1de57](https://github.com/kabouzeid/turm/commit/bc1de573353ab9cc19d123da1565b79e747da1c3)), closes [#52](https://github.com/kabouzeid/turm/issues/52)
+* revert calling scancel inside of thread ([741198f](https://github.com/kabouzeid/turm/commit/741198f5a10724b74e7f094743ae4d7a4ee1abed))
+* wait for scancel to finish ([8b11875](https://github.com/kabouzeid/turm/commit/8b1187543997c9b03e88a92d6183a0eb7f3b2edd))
+
 ## [0.10.0](https://github.com/kabouzeid/turm/compare/v0.9.0...v0.10.0) (2025-12-12)
 
 
