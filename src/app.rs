@@ -206,6 +206,12 @@ impl App {
                         KeyCode::Char('j') | KeyCode::Down => match self.focus {
                             Focus::Jobs => self.select_next_job(),
                         },
+                        KeyCode::Char('g') => match self.focus {
+                            Focus::Jobs => self.select_first_job(),
+                        },
+                        KeyCode::Char('G') => match self.focus {
+                            Focus::Jobs => self.select_last_job(),
+                        },
                         KeyCode::PageDown => {
                             let delta = if key.modifiers.intersects(
                                 crossterm::event::KeyModifiers::SHIFT
@@ -729,5 +735,13 @@ impl App {
 
     fn select_previous_job(&mut self) {
         self.job_list_state.select_previous();
+    }
+
+    fn select_first_job(&mut self) {
+        self.job_list_state.select_first();
+    }
+
+    fn select_last_job(&mut self) {
+        self.job_list_state.select_last();
     }
 }
