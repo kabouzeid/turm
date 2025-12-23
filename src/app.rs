@@ -437,7 +437,7 @@ impl App {
             )
             .highlight_style(Style::default().bg(Color::Green).fg(Color::Black));
         f.render_stateful_widget(job_list, master_detail[0], &mut self.job_list_state);
-        self.job_list_height = master_detail[0].height;
+        self.job_list_height = master_detail[0].height.saturating_sub(2); // account for borders
 
         // Job details
 
