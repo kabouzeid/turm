@@ -56,6 +56,7 @@ pub struct App {
     receiver: Receiver<AppMessage>,
     input_receiver: Receiver<std::io::Result<Event>>,
     output_file_view: OutputFileView,
+    job_list_height: u16,
 }
 
 pub struct Job {
@@ -122,6 +123,7 @@ impl App {
             receiver,
             input_receiver,
             output_file_view: OutputFileView::default(),
+            job_list_height: 0,
         }
     }
 }
@@ -211,6 +213,26 @@ impl App {
                         },
                         KeyCode::Char('G') => match self.focus {
                             Focus::Jobs => self.select_last_job(),
+                        },
+                        KeyCode::Char('u') => match self.focus {
+                            Focus::Jobs => {
+                                if key
+                                    .modifiers
+                                    .contains(crossterm::event::KeyModifiers::CONTROL)
+                                {
+                                    self.scroll_jobs_half_page_up()
+                                }
+                            }
+                        },
+                        KeyCode::Char('d') => match self.focus {
+                            Focus::Jobs => {
+                                if key
+                                    .modifiers
+                                    .contains(crossterm::event::KeyModifiers::CONTROL)
+                                {
+                                    self.scroll_jobs_half_page_down()
+                                }
+                            }
                         },
                         KeyCode::PageDown => {
                             let delta = if key.modifiers.intersects(
@@ -415,6 +437,7 @@ impl App {
             )
             .highlight_style(Style::default().bg(Color::Green).fg(Color::Black));
         f.render_stateful_widget(job_list, master_detail[0], &mut self.job_list_state);
+        self.job_list_height = master_detail[0].height;
 
         // Job details
 
@@ -743,5 +766,13 @@ impl App {
 
     fn select_last_job(&mut self) {
         self.job_list_state.select_last();
+    }
+
+    fn scroll_jobs_half_page_down(&mut self) {
+        self.job_list_state.scroll_down_by(self.job_list_height / 2);
+    }
+
+    fn scroll_jobs_half_page_up(&mut self) {
+        self.job_list_state.scroll_up_by(self.job_list_height / 2);
     }
 }
