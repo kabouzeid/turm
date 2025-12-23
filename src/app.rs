@@ -1,5 +1,5 @@
 use crossbeam::{
-    channel::{unbounded, Receiver},
+    channel::{Receiver, unbounded},
     select,
 };
 use itertools::Either;
@@ -11,12 +11,12 @@ use crate::job_watcher::JobWatcherHandle;
 
 use crossterm::event::{Event, KeyCode, KeyEvent};
 use ratatui::{
+    Frame, Terminal,
     backend::Backend,
     layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
     text::{Line, Span, Text},
     widgets::{Block, BorderType, Borders, Clear, List, ListItem, ListState, Paragraph, Wrap},
-    Frame, Terminal,
 };
 use std::io;
 

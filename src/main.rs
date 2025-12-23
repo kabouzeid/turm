@@ -7,17 +7,17 @@ use app::App;
 use clap::CommandFactory;
 use clap::Parser;
 use clap::Subcommand;
-use clap_complete::{generate, Shell};
-use crossbeam::channel::{unbounded, Sender};
+use clap_complete::{Shell, generate};
+use crossbeam::channel::{Sender, unbounded};
 use crossterm::{
     cursor::Show,
     event::{self, DisableMouseCapture, EnableMouseCapture, Event},
     execute,
-    terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
+    terminal::{EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode},
 };
 use ratatui::{
-    backend::{Backend, CrosstermBackend},
     Terminal,
+    backend::{Backend, CrosstermBackend},
 };
 use squeue_args::SqueueArgs;
 use std::io::Write;

@@ -8,10 +8,10 @@ use std::{
 };
 
 use crossbeam::{
-    channel::{unbounded, Receiver, RecvError, SendError, Sender},
+    channel::{Receiver, RecvError, SendError, Sender, unbounded},
     select,
 };
-use notify::{event::ModifyKind, RecursiveMode, Watcher};
+use notify::{RecursiveMode, Watcher, event::ModifyKind};
 
 use crate::app::AppMessage;
 
