@@ -5,7 +5,8 @@ authors = ["Karim Abou Zeid <contact@ka.codes>"]
 description = "A TUI for the Slurm Workload Manager."
 repository = "https://github.com/kabouzeid/turm"
 license = "MIT"
-edition = "2021"
+edition = "2024"
+rust-version = "1.87"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
