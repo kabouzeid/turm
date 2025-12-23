@@ -10,6 +10,7 @@ use clap::Subcommand;
 use clap_complete::{generate, Shell};
 use crossbeam::channel::{unbounded, Sender};
 use crossterm::{
+    cursor::Show,
     event::{self, DisableMouseCapture, EnableMouseCapture, Event},
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
@@ -19,7 +20,8 @@ use ratatui::{
     Terminal,
 };
 use squeue_args::SqueueArgs;
-use std::{io, thread};
+use std::io::Write;
+use std::{io, panic, thread};
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
@@ -49,7 +51,7 @@ enum CliCommand {
     },
 }
 
-fn main() -> Result<(), io::Error> {
+fn main() -> io::Result<()> {
     let args = Cli::parse();
     match args.command {
         Some(CliCommand::Completion { shell }) => {
@@ -60,30 +62,58 @@ fn main() -> Result<(), io::Error> {
         None => {}
     }
 
-    // setup terminal
-    enable_raw_mode()?;
-    let mut stdout = io::stdout();
-    execute!(stdout, EnterAlternateScreen, EnableMouseCapture)?;
-    let backend = CrosstermBackend::new(stdout);
-    let mut terminal = Terminal::new(backend)?;
-    run_app(&mut terminal, args)?;
+    install_panic_hook();
 
-    // restore terminal
-    disable_raw_mode()?;
-    execute!(
-        terminal.backend_mut(),
-        LeaveAlternateScreen,
-        DisableMouseCapture
-    )?;
-    terminal.show_cursor()?;
+    let mut terminal_guard = TerminalGuard::new(io::stdout())?;
+    run_app(terminal_guard.terminal_mut(), args)
+}
 
-    Ok(())
+fn install_panic_hook() {
+    let default_hook = panic::take_hook();
+    panic::set_hook(Box::new(move |panic_info| {
+        let _ = disable_raw_mode();
+        let _ = execute!(
+            io::stdout(),
+            LeaveAlternateScreen,
+            DisableMouseCapture,
+            Show
+        );
+        default_hook(panic_info);
+    }));
+}
+
+struct TerminalGuard<W: Write> {
+    terminal: Terminal<CrosstermBackend<W>>,
+}
+
+impl<W: Write> TerminalGuard<W> {
+    fn new(mut writer: W) -> io::Result<Self> {
+        enable_raw_mode()?;
+        execute!(writer, EnterAlternateScreen, EnableMouseCapture)?;
+        let backend = CrosstermBackend::new(writer);
+        let terminal = Terminal::new(backend)?;
+        Ok(Self { terminal })
+    }
+
+    fn terminal_mut(&mut self) -> &mut Terminal<CrosstermBackend<W>> {
+        &mut self.terminal
+    }
+}
+
+impl<W: Write> Drop for TerminalGuard<W> {
+    fn drop(&mut self) {
+        let _ = disable_raw_mode();
+        let _ = execute!(
+            self.terminal.backend_mut(),
+            LeaveAlternateScreen,
+            DisableMouseCapture
+        );
+        let _ = self.terminal.show_cursor();
+    }
 }
 
 fn input_loop(tx: Sender<std::io::Result<Event>>) {
-    loop {
-        tx.send(event::read()).unwrap();
-    }
+    while tx.send(event::read()).is_ok() {}
 }
 
 fn run_app<B: Backend>(terminal: &mut Terminal<B>, args: Cli) -> io::Result<()> {
