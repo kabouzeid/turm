@@ -3,7 +3,7 @@ use crossbeam::{
     select,
 };
 use itertools::Either;
-use std::{cmp::min, iter::once, path::PathBuf, process::Command, thread};
+use std::{cmp::min, iter::once, path::PathBuf, process::Command};
 use std::{process::Stdio, time::Duration};
 
 use crate::file_watcher::{FileWatcherError, FileWatcherHandle};
@@ -157,27 +157,20 @@ impl App {
         match msg {
             AppMessage::Jobs(jobs) => {
                 // On refresh: keep the same job selected if it still exists
-                // If job disappeared, clamp to a valid index.
-                // If the list is empty, clear selection.
-                // If selection is clear but jobs exist, pick the first one (code assumes this)
-                let selected_id = self
-                    .job_list_state
-                    .selected()
-                    .and_then(|i| self.jobs.get(i))
-                    .map(|j| j.id());
                 let old_index = self.job_list_state.selected();
+                let old_id = old_index.and_then(|i| self.jobs.get(i)).map(|j| j.id());
 
                 self.jobs = jobs;
 
                 if self.jobs.is_empty() {
                     self.job_list_state.select(None);
-                } else if let Some(id) = selected_id {
-                    if let Some(new_index) = self.jobs.iter().position(|j| j.id() == id) {
-                        self.job_list_state.select(Some(new_index));
-                    } else {
-                        let fallback = old_index.unwrap_or(0).min(self.jobs.len() - 1);
-                        self.job_list_state.select(Some(fallback));
-                    }
+                } else if let Some(id) = old_id {
+                    let new_index = self
+                        .jobs
+                        .iter()
+                        .position(|j| j.id() == id)
+                        .unwrap_or(old_index.unwrap_or(0).min(self.jobs.len() - 1));
+                    self.job_list_state.select(Some(new_index));
                 } else {
                     self.job_list_state.select_first();
                 }
