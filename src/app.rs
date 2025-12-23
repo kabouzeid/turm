@@ -415,9 +415,6 @@ impl App {
                     }),
             )
             .highlight_style(Style::default().bg(Color::Green).fg(Color::Black));
-        if self.job_list_state.selected().is_none() && !self.jobs.is_empty() {
-            self.job_list_state.select_first();
-        }
         f.render_stateful_widget(job_list, master_detail[0], &mut self.job_list_state);
 
         // Job details
