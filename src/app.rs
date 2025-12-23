@@ -186,7 +186,7 @@ impl App {
                                     .arg(id)
                                     .stdout(Stdio::null())
                                     .stderr(Stdio::null())
-                                    .spawn()
+                                    .status()
                                     .expect("failed to execute scancel");
                                 self.dialog = None;
                             }
