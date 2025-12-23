@@ -119,8 +119,8 @@ impl App {
                 Duration::from_secs(file_refresh_rate),
             ),
             // sender,
-            receiver: receiver,
-            input_receiver: input_receiver,
+            receiver,
+            input_receiver,
             output_file_view: OutputFileView::default(),
         }
     }
@@ -155,13 +155,33 @@ impl App {
 
     fn handle(&mut self, msg: AppMessage) {
         match msg {
-            AppMessage::Jobs(jobs) => self.jobs = jobs,
+            AppMessage::Jobs(jobs) => {
+                // On refresh: keep the same job selected if it still exists
+                let old_index = self.job_list_state.selected();
+                let old_id = old_index.and_then(|i| self.jobs.get(i)).map(|j| j.id());
+
+                self.jobs = jobs;
+
+                if self.jobs.is_empty() {
+                    self.job_list_state.select(None);
+                } else if let Some(id) = old_id {
+                    let new_index = self
+                        .jobs
+                        .iter()
+                        .position(|j| j.id() == id)
+                        .unwrap_or(old_index.unwrap_or(0).min(self.jobs.len() - 1));
+                    self.job_list_state.select(Some(new_index));
+                } else {
+                    self.job_list_state.select_first();
+                }
+            }
             AppMessage::JobOutput(content) => self.job_output = content,
             AppMessage::Key(key) => {
                 if let Some(dialog) = &self.dialog {
                     match dialog {
                         Dialog::ConfirmCancelJob(id) => match key.code {
                             KeyCode::Enter | KeyCode::Char('y') => {
+                                let id = id.clone();
                                 Command::new("scancel")
                                     .arg(id)
                                     .stdout(Stdio::null())
@@ -388,9 +408,6 @@ impl App {
                     }),
             )
             .highlight_style(Style::default().bg(Color::Green).fg(Color::Black));
-        if self.job_list_state.selected().is_none() {
-            self.job_list_state.select_first();
-        }
         f.render_stateful_widget(job_list, master_detail[0], &mut self.job_list_state);
 
         // Job details
@@ -564,7 +581,7 @@ fn chunked_string(s: &str, first_chunk_size: usize, chunk_size: usize) -> Vec<&s
         .enumerate()
         .filter(|&(i, _)| {
             if i > (first_chunk_size) {
-                chunk_size > 0 && (i - first_chunk_size) % chunk_size == 0
+                chunk_size > 0 && (i - first_chunk_size).is_multiple_of(chunk_size)
             } else {
                 i == 0 || i == first_chunk_size
             }
@@ -631,7 +648,7 @@ fn fit_text(
     offset: usize,
     wrap: bool,
 ) -> Text<'_> {
-    let s = s.rsplit_once(&['\r', '\n']).map_or(s, |(p, _)| p); // skip everything after last line delimiter
+    let s = s.rsplit_once(['\r', '\n']).map_or(s, |(p, _)| p); // skip everything after last line delimiter
     let l = s.lines().flat_map(|l| l.split('\r')); // bandaid for term escape codes
     let iter = match anchor {
         ScrollAnchor::Top => Either::Left(l),
