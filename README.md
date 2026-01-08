@@ -2,6 +2,7 @@
 
 [![image](https://img.shields.io/pypi/v/turm.svg)](https://pypi.python.org/pypi/turm)
 [![image](https://img.shields.io/crates/v/turm.svg)](https://crates.io/crates/turm)
+[![Conda Version](https://img.shields.io/conda/vn/conda-forge/turm.svg)](https://anaconda.org/conda-forge/turm)
 
 A text-based user interface (TUI) for the [Slurm Workload Manager](https://slurm.schedmd.com/), which provides a convenient way to manage your cluster jobs.
 
