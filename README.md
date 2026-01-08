@@ -26,11 +26,8 @@ pip install turm
 # With cargo.
 cargo install turm
 
-# With pixi global.
-pixi global install turm
-
 # With pixi.
-pixi add turm
+pixi global install turm
 
 # With conda.
 conda install --channel conda-forge turm
