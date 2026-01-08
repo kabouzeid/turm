@@ -14,7 +14,7 @@ turm --sort=-id --me --states=ALL
 
 ## Installation
 
-`turm` is available on [PyPI](https://pypi.org/project/turm/) and [crates.io](https://crates.io/crates/turm):
+`turm` is available on [PyPI](https://pypi.org/project/turm/), [crates.io](https://crates.io/crates/turm), and [conda-forge](https://github.com/conda-forge/turm-feedstock):
 
 ```shell
 # With uv.
@@ -25,6 +25,15 @@ pip install turm
 
 # With cargo.
 cargo install turm
+
+# With pixi global.
+pixi global install turm
+
+# With pixi.
+pixi add turm
+
+# With conda.
+conda install --channel conda-forge turm
 
 # With wget. Make sure ~/.local/bin is in your $PATH.
 wget https://github.com/kabouzeid/turm/releases/latest/download/turm-x86_64-unknown-linux-musl.tar.gz -O - | tar -xz -C ~/.local/bin/
