@@ -34,10 +34,10 @@ pixi global install turm
 conda install --channel conda-forge turm
 
 # With wget. Make sure ~/.local/bin is in your $PATH.
-wget https://github.com/kabouzeid/turm/releases/latest/download/turm-x86_64-unknown-linux-musl.tar.gz -O - | tar -xz -C ~/.local/bin/
+wget https://github.com/karimknaebel/turm/releases/latest/download/turm-x86_64-unknown-linux-musl.tar.gz -O - | tar -xz -C ~/.local/bin/
 ```
 
-The [release page](https://github.com/kabouzeid/turm/releases) also contains precompiled binaries for Linux.
+The [release page](https://github.com/karimknaebel/turm/releases) also contains precompiled binaries for Linux.
 
 ### Shell Completion (optional)
 
@@ -81,4 +81,4 @@ However, since inotify notifications are not supported for remote file systems, 
 
 ## Star History
 
-[![Star History Chart](https://api.star-history.com/svg?repos=kabouzeid/turm&type=Date)](https://www.star-history.com/#kabouzeid/turm&Date)
+[![Star History Chart](https://api.star-history.com/svg?repos=karimknaebel/turm&type=Date)](https://www.star-history.com/#karimknaebel/turm&Date)
