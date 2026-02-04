@@ -4,13 +4,13 @@
 [![image](https://img.shields.io/crates/v/turm.svg)](https://crates.io/crates/turm)
 [![Conda Version](https://img.shields.io/conda/vn/conda-forge/turm.svg)](https://anaconda.org/conda-forge/turm)
 
-A text-based user interface (TUI) for the [Slurm Workload Manager](https://slurm.schedmd.com/), which provides a convenient way to manage your cluster jobs.
+A TUI for [Slurm](https://slurm.schedmd.com/), which provides a convenient way to manage your cluster jobs.
 
 <img alt="turm demo" src="https://github.com/user-attachments/assets/7daade50-def3-4bf8-bf12-df311438094e" width="100%" />
 
 `turm` accepts the same options as `squeue` (see [man squeue](https://slurm.schedmd.com/squeue.html#SECTION_OPTIONS)). Use `turm --help` to get a list of all available options. For example, to show only your own jobs, sorted by descending job ID, including all job states (i.e., including completed and failed jobs):
 ```shell
-turm --sort=-id --me --states=ALL
+turm --me --sort=-id --states=ALL
 ```
 
 ## Installation
